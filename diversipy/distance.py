@@ -9,7 +9,6 @@ import math
 import numpy as np
 
 
-
 def calc_dists_to_boundary(points, cuboid=None):
     """Calculate the distance of each point to the boundary of some cuboid.
 
@@ -44,7 +43,6 @@ def calc_dists_to_boundary(points, cuboid=None):
     return distances
 
 
-
 def calc_euclidean_dist_matrix(points1, points2):
     """Calculate Euclidean distance matrix between `points1` and `points2`.
 
@@ -75,7 +73,6 @@ def calc_euclidean_dist_matrix(points1, points2):
     return distances
 
 
-
 def calc_manhattan_dist_matrix(points1, points2):
     """Calculate Manhattan distance matrix between `points1` and `points2`.
 
@@ -103,7 +100,6 @@ def calc_manhattan_dist_matrix(points1, points2):
     return distances
 
 
-
 class DistanceMatrixFunction:
     """General distance function.
 
@@ -113,6 +109,7 @@ class DistanceMatrixFunction:
     to Manhattan and Euclidean distance, respectively.
 
     """
+
     def __init__(self, exponent=2, max_dists_per_dim=None):
         """Constructor.
 
@@ -133,7 +130,6 @@ class DistanceMatrixFunction:
         if max_dists_per_dim is not None:
             for max_dist in max_dists_per_dim:
                 assert max_dist > 0 or max_dist is None
-
 
     def __call__(self, points1, points2):
         """Calculate distance matrix, one column at a time."""

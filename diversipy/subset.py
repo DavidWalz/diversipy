@@ -39,7 +39,6 @@ class MinBoundingBox:
         # fill in information
         self.update_information()
 
-
     def update_information(self):
         """Gather information from the points and save it."""
         all_points = self.all_points
@@ -62,10 +61,9 @@ class MinBoundingBox:
         self.min_bounds = min_bounds
         self.max_bounds = max_bounds
 
-
-    def closest_point_index(self, sought_point,
-                            candidate_indices,
-                            dist_matrix_function=None):
+    def closest_point_index(
+        self, sought_point, candidate_indices, dist_matrix_function=None
+    ):
         """Return the index of the point closest to a certain target.
 
         Parameters
@@ -87,15 +85,16 @@ class MinBoundingBox:
         if dist_matrix_function is None:
             dist_matrix_function = calc_euclidean_dist_matrix
         candidates_array = np.take(all_points, candidate_indices, axis=0)
-        distances = dist_matrix_function(np.atleast_2d(sought_point),
-                                         candidates_array)
+        distances = dist_matrix_function(np.atleast_2d(sought_point), candidates_array)
         closest_point_index = candidate_indices[np.argmin(distances)]
         return closest_point_index
 
-
-    def obtain_representative(self, selection_target="centroid_of_hypercube",
-                              tournament_size=0,
-                              dist_matrix_function=None):
+    def obtain_representative(
+        self,
+        selection_target="centroid_of_hypercube",
+        tournament_size=0,
+        dist_matrix_function=None,
+    ):
         """Return a point representing this cluster.
 
         Parameters
@@ -120,17 +119,18 @@ class MinBoundingBox:
         representative : array_like
 
         """
-        index = self.obtain_representative_index(selection_target,
-                                                 tournament_size,
-                                                 dist_matrix_function)
+        index = self.obtain_representative_index(
+            selection_target, tournament_size, dist_matrix_function
+        )
         representative = self.all_points[index]
         return representative
 
-
-    def obtain_representative_index(self,
-                                    selection_target="centroid_of_hypercube",
-                                    tournament_size=0,
-                                    dist_matrix_function=None):
+    def obtain_representative_index(
+        self,
+        selection_target="centroid_of_hypercube",
+        tournament_size=0,
+        dist_matrix_function=None,
+    ):
         """Return the index to a point representing this cluster.
 
         Parameters
@@ -163,20 +163,26 @@ class MinBoundingBox:
         # determine target point
         if selection_target == "random_uniform":
             # random point in the space (!) of the bounding box
-            target_point = [random.uniform(min_bounds[i], max_bounds[i]) for i in range(dimension)]
+            target_point = [
+                random.uniform(min_bounds[i], max_bounds[i]) for i in range(dimension)
+            ]
         elif selection_target == "center_of_mass":
             members_array = np.take(all_points, member_indices, axis=0)
             target_point = np.mean(members_array, axis=0)
-        elif selection_target == "centroid_of_hypercube" or selection_target == "max_dist_from_boundary":
-            target_point = [(max_bounds[i] + min_bounds[i]) * 0.5 for i in range(dimension)]
+        elif (
+            selection_target == "centroid_of_hypercube"
+            or selection_target == "max_dist_from_boundary"
+        ):
+            target_point = [
+                (max_bounds[i] + min_bounds[i]) * 0.5 for i in range(dimension)
+            ]
         else:
             raise ValueError("Unknown target mode '" + selection_target + "'")
         # determine subset of points as candidates
         if tournament_size <= 0 or tournament_size >= len(member_indices):
             candidate_point_indices = member_indices
         else:
-            candidate_point_indices = random.sample(member_indices,
-                                                    tournament_size)
+            candidate_point_indices = random.sample(member_indices, tournament_size)
         # find best of those according to selection criterion
         if selection_target == "max_dist_from_boundary":
             hypercube = (min_bounds, max_bounds)
@@ -185,35 +191,28 @@ class MinBoundingBox:
             max_dist_index = np.argmax(dists_to_bound)
             index = candidate_point_indices[max_dist_index]
         else:
-            index = self.closest_point_index(target_point,
-                                             candidate_point_indices,
-                                             dist_matrix_function)
+            index = self.closest_point_index(
+                target_point, candidate_point_indices, dist_matrix_function
+            )
         return index
-
 
     def __lt__(self, other):
         return self.sort_key < other.sort_key
 
-
     def __gt__(self, other):
         return self.sort_key > other.sort_key
-
 
     def __eq__(self, other):
         return self.sort_key == other.sort_key
 
-
     def __le__(self, other):
         return self.sort_key <= other.sort_key
-
 
     def __ge__(self, other):
         return self.sort_key >= other.sort_key
 
-
     def __ne__(self, other):
         return self.sort_key != other.sort_key
-
 
 
 def psa_partition(points, num_clusters, available_points_indices=None):
@@ -276,13 +275,14 @@ def psa_partition(points, num_clusters, available_points_indices=None):
     return clusters
 
 
-
-def psa_select(points,
-               num_selected_points,
-               available_points_indices=None,
-               selection_target="centroid_of_hypercube",
-               tournament_size=0,
-               dist_matrix_function=None):
+def psa_select(
+    points,
+    num_selected_points,
+    available_points_indices=None,
+    selection_target="centroid_of_hypercube",
+    tournament_size=0,
+    dist_matrix_function=None,
+):
     """Combine partitioning and determination of representatives.
 
     The approach was originally proposed in [Salomon2013]_. The
@@ -321,21 +321,22 @@ def psa_select(points,
     clusters = psa_partition(points, num_selected_points, available_points_indices)
     representatives = []
     for cluster in clusters:
-        representative = cluster.obtain_representative(selection_target,
-                                                       tournament_size,
-                                                       dist_matrix_function)
+        representative = cluster.obtain_representative(
+            selection_target, tournament_size, dist_matrix_function
+        )
         representatives.append(representative)
     if isinstance(points, np.ndarray):
         representatives = np.array(representatives)
     return representatives
 
 
-
-def select_greedy_maximin(points,
-                          num_selected_points,
-                          existing_points=None,
-                          dist_matrix_function=None,
-                          callback=None):
+def select_greedy_maximin(
+    points,
+    num_selected_points,
+    existing_points=None,
+    dist_matrix_function=None,
+    callback=None,
+):
     """Greedily select a subset according to maximin criterion.
 
     This selection approach corresponds to the indicator
@@ -382,8 +383,9 @@ def select_greedy_maximin(points,
             callback(selected_indices, aggregated_dist_criteria)
         previous_point = np.atleast_2d(points_array[previous_index])
         distances = dist_matrix_function(previous_point, points_array)
-        aggregated_dist_criteria = np.minimum(aggregated_dist_criteria,
-                                              distances.ravel())
+        aggregated_dist_criteria = np.minimum(
+            aggregated_dist_criteria, distances.ravel()
+        )
         previous_index = np.argmax(aggregated_dist_criteria)
         selected_indices.append(previous_index)
     if isinstance(points, list):
@@ -392,12 +394,13 @@ def select_greedy_maximin(points,
         return np.take(points_array, selected_indices, axis=0)
 
 
-
-def select_greedy_maxisum(points,
-                          num_selected_points,
-                          existing_points=None,
-                          dist_matrix_function=None,
-                          callback=None):
+def select_greedy_maxisum(
+    points,
+    num_selected_points,
+    existing_points=None,
+    dist_matrix_function=None,
+    callback=None,
+):
     """Greedily select a subset according to maxisum criterion.
 
     This selection approach corresponds to the indicator
@@ -457,13 +460,14 @@ def select_greedy_maxisum(points,
         return np.take(points_array, selected_indices, axis=0)
 
 
-
-def select_greedy_energy(points,
-                         num_selected_points,
-                         existing_points=None,
-                         exponent=None,
-                         dist_matrix_function=None,
-                         callback=None):
+def select_greedy_energy(
+    points,
+    num_selected_points,
+    existing_points=None,
+    exponent=None,
+    dist_matrix_function=None,
+    callback=None,
+):
     """Greedily select a subset according to potential energy.
 
     This selection approach uses the Riesz energy as selection criterion,
@@ -520,7 +524,7 @@ def select_greedy_energy(points,
     if exponent is None:
         exponent = dimension + 1
     distances = dist_matrix_function(existing_points, points_array)
-    with np.errstate(divide='ignore'):
+    with np.errstate(divide="ignore"):
         if exponent == 0:
             distances = np.log(1.0 / distances)
         else:
@@ -533,7 +537,7 @@ def select_greedy_energy(points,
             callback(selected_indices, aggregated_dist_criteria)
         previous_point = np.atleast_2d(points[previous_index])
         distances = dist_matrix_function(previous_point, points_array)
-        with np.errstate(divide='ignore'):
+        with np.errstate(divide="ignore"):
             if exponent == 0:
                 distances = np.log(1.0 / distances)
             else:

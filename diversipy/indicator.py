@@ -9,6 +9,7 @@ import math
 from decimal import Decimal
 
 import numpy as np
+
 try:
     from scipy.spatial import Voronoi
 except ImportError:
@@ -83,7 +84,6 @@ def covering_radius(points, repair_margin=1e-8, full_output=False):
         return cov_radius
 
 
-
 def covering_radius_upper_bound(points, strata, dist_matrix_function=None):
     """Upper bound for the covering radius.
 
@@ -130,11 +130,9 @@ def covering_radius_upper_bound(points, strata, dist_matrix_function=None):
     return cr_ub
 
 
-
-def covering_radius_lower_bound(points,
-                                monte_carlo_points,
-                                block_size=10000,
-                                dist_matrix_function=None):
+def covering_radius_lower_bound(
+    points, monte_carlo_points, block_size=10000, dist_matrix_function=None
+):
     """Monte Carlo lower bound for the covering radius.
 
     Parameters
@@ -166,12 +164,12 @@ def covering_radius_lower_bound(points,
     i = 0
     cr_lb = 0
     while i < len(monte_carlo_points):
-        dist_matrix = dist_matrix_function(monte_carlo_points[i:(i + block_size)],
-                                           points)
+        dist_matrix = dist_matrix_function(
+            monte_carlo_points[i : (i + block_size)], points
+        )
         i += block_size
         cr_lb = max(cr_lb, dist_matrix.min(axis=1).max())
     return cr_lb
-
 
 
 def solow_polasky_diversity(points, activity_param=1.0, dist_matrix_function=None):
@@ -218,7 +216,6 @@ def solow_polasky_diversity(points, activity_param=1.0, dist_matrix_function=Non
     return inverse_matrix.sum()
 
 
-
 def weitzman_diversity(points, dist_matrix_function=None):
     """Calculate the Weitzman diversity for a set of points.
 
@@ -246,6 +243,7 @@ def weitzman_diversity(points, dist_matrix_function=None):
         https://www.jstor.org/stable/2118476
 
     """
+
     def diversity_recursive(indices, dist_matrix):
         num_points = len(indices)
         if num_points == 1:
@@ -284,7 +282,6 @@ def weitzman_diversity(points, dist_matrix_function=None):
     return diversity_recursive(list(range(num_points)), dist_matrix)
 
 
-
 def sum_of_dists(points, dist_matrix_function=None):
     """Calculate the square root of the sum of all pairwise distances.
 
@@ -317,8 +314,9 @@ def sum_of_dists(points, dist_matrix_function=None):
     return spread
 
 
-
-def average_inverse_dist(points, exponent=None, max_dist=1.0, dist_matrix_function=None):
+def average_inverse_dist(
+    points, exponent=None, max_dist=1.0, dist_matrix_function=None
+):
     """Calculate the average inverse distance.
 
     For each pair of points, the value ``(max_dist / dist) ** exponent`` is
@@ -368,7 +366,6 @@ def average_inverse_dist(points, exponent=None, max_dist=1.0, dist_matrix_functi
         return sum_of_inv_dists ** (1.0 / exponent) / num_dists
 
 
-
 def separation_dist(points, dist_matrix_function=None):
     """Calculate the minimal pairwise distance.
 
@@ -399,7 +396,6 @@ def separation_dist(points, dist_matrix_function=None):
     return min_dist
 
 
-
 def binom_coeff(n, k):
     """Binomial coefficient."""
     assert n >= k
@@ -407,13 +403,7 @@ def binom_coeff(n, k):
     return fac(n) // fac(k) // fac(n - k)
 
 
-
-def wmh_index(sep_dist,
-              dist_p,
-              num_points,
-              dim,
-              approx=None,
-              full_output=False):
+def wmh_index(sep_dist, dist_p, num_points, dim, approx=None, full_output=False):
     """Quality index of Wahl, Mercadier, and Helbert.
 
     In [Wahl2017]_, the idea to use the probability to obtain a sample
@@ -528,7 +518,6 @@ def wmh_index(sep_dist,
         return max(approximations)
 
 
-
 def sum_of_nn_dists(points, dist_matrix_function=None):
     """Calculate the sum of nearest-neighbor distances
 
@@ -557,7 +546,6 @@ def sum_of_nn_dists(points, dist_matrix_function=None):
         dist_matrix[i, i] = np.inf
     nn_dists = dist_matrix.min(axis=0)
     return nn_dists.sum()
-
 
 
 def unanchored_L2_discrepancy(points):
@@ -598,10 +586,14 @@ def unanchored_L2_discrepancy(points):
         for k in range(j, num_batches):
             lo2 = k * 1000
             hi2 = (k + 1) * 1000
-            part1_matrix = (1.0 - np.maximum(points[lo1:hi1, 0, None], points[lo2:hi2, 0]))
+            part1_matrix = 1.0 - np.maximum(
+                points[lo1:hi1, 0, None], points[lo2:hi2, 0]
+            )
             part1_matrix *= np.minimum(points[lo1:hi1, 0, None], points[lo2:hi2, 0])
             for i in range(1, dimension):
-                part1_matrix *= (1.0 - np.maximum(points[lo1:hi1, i, None], points[lo2:hi2, i]))
+                part1_matrix *= 1.0 - np.maximum(
+                    points[lo1:hi1, i, None], points[lo2:hi2, i]
+                )
                 part1_matrix *= np.minimum(points[lo1:hi1, i, None], points[lo2:hi2, i])
             batch_sum = part1_matrix.sum()
             part1_sum += batch_sum
@@ -613,7 +605,6 @@ def unanchored_L2_discrepancy(points):
     result -= part2_sum * (2.0 ** (1.0 - dimension) / num_points)
     result += 12 ** -dimension
     return math.sqrt(result)
-
 
 
 def expected_unanchored_L2_discrepancy(num_points, dimension):
@@ -629,7 +620,6 @@ def expected_unanchored_L2_discrepancy(num_points, dimension):
     return math.sqrt(1.0 / num_points * (6 ** -dimension) * (1 - 2 ** -dimension))
 
 
-
 def mean_dist_to_boundary(points):
     """Calculate the mean distance to the boundary of this point set."""
     if len(points) == 0:
@@ -641,12 +631,10 @@ def mean_dist_to_boundary(points):
     return np.mean(dists)
 
 
-
 def expected_dist_to_boundary(dimension):
     """The expected distance to the boundary for random uniform points."""
     assert dimension > 0
     return 0.5 / (1 + dimension)
-
 
 
 def averaged_hausdorff_dist(points1, points2, exponent=1, dist_matrix_function=None):
@@ -696,7 +684,6 @@ def averaged_hausdorff_dist(points1, points2, exponent=1, dist_matrix_function=N
     part2 = (min_dists2 ** exponent).sum() / len(min_dists2) ** (1.0 / exponent)
     ahd = max(part1, part2)
     return ahd
-
 
 
 def hausdorff_dist(points1, points2, dist_matrix_function=None):

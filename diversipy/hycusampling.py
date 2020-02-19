@@ -17,12 +17,10 @@ from diversipy.distance import calc_euclidean_dist_matrix
 from diversipy.distance import DistanceMatrixFunction
 
 
-
 def unitcube(dimension):
     """Shortcut to generate a tuple of bounds of the unit hypercube."""
     assert dimension > 0
     return [0.0] * dimension, [1.0] * dimension
-
 
 
 def scaled(points, from_cuboid, to_cuboid):
@@ -56,12 +54,11 @@ def scaled(points, from_cuboid, to_cuboid):
     for min_bound_from, max_bound_from in zip(min_bounds_from, max_bounds_from):
         assert max_bound_from >= min_bound_from
     # scale
-    length_factors = (np.asarray(max_bounds_to) - min_bounds_to)
-    length_factors /= (np.asarray(max_bounds_from) - min_bounds_from)
+    length_factors = np.asarray(max_bounds_to) - min_bounds_to
+    length_factors /= np.asarray(max_bounds_from) - min_bounds_from
     scaled_points = (np.asarray(points) - min_bounds_from) * length_factors
     scaled_points += min_bounds_to
     return scaled_points
-
 
 
 def grid(num_points, dimension):
@@ -90,7 +87,6 @@ def grid(num_points, dimension):
         possible_values[i] /= divisor
     points = np.array(list(itertools.product(possible_values, repeat=dimension)))
     return points
-
 
 
 def sukharev_grid(num_points, dimension):
@@ -124,7 +120,6 @@ def sukharev_grid(num_points, dimension):
     return points
 
 
-
 def rank1_design_matrix(num_points, dimension, generator_vector=None):
     """Design matrix for a rank-1 lattice.
 
@@ -149,9 +144,10 @@ def rank1_design_matrix(num_points, dimension, generator_vector=None):
         generator_vector = np.random.randint(2, num_points, dimension)
     assert len(generator_vector) == dimension
     generator_vector = np.array(generator_vector) % num_points
-    points = np.array([i * generator_vector % num_points for i in range(num_points)], dtype="i")
+    points = np.array(
+        [i * generator_vector % num_points for i in range(num_points)], dtype="i"
+    )
     return points
-
 
 
 def korobov_design_matrix(num_points, dimension, generator_param=None):
@@ -186,11 +182,9 @@ def korobov_design_matrix(num_points, dimension, generator_param=None):
     return rank1_design_matrix(num_points, dimension, generator_vector)
 
 
-
 def random_uniform(num_points, dimension):
     """Syntactic sugar for :func:`numpy.random.rand`."""
     return np.random.rand(num_points, dimension)
-
 
 
 def halton(num_points, dimension, skip=0):
@@ -213,6 +207,7 @@ def halton(num_points, dimension, skip=0):
     points : (`num_points`, `dimension`) numpy array
 
     """
+
     def is_prime(number):
         number = float(number)
         if number % 2 == 0 and number != 2:
@@ -232,10 +227,62 @@ def halton(num_points, dimension, skip=0):
             f /= base
         return result
 
-    bases = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59,
-             61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131,
-             137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197,
-             199, 211, 223, 227, 229, 233, 239, 241, 251]
+    bases = [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19,
+        23,
+        29,
+        31,
+        37,
+        41,
+        43,
+        47,
+        53,
+        59,
+        61,
+        67,
+        71,
+        73,
+        79,
+        83,
+        89,
+        97,
+        101,
+        103,
+        107,
+        109,
+        113,
+        127,
+        131,
+        137,
+        139,
+        149,
+        151,
+        157,
+        163,
+        167,
+        173,
+        179,
+        181,
+        191,
+        193,
+        197,
+        199,
+        211,
+        223,
+        227,
+        229,
+        233,
+        239,
+        241,
+        251,
+    ]
     while len(bases) < dimension:
         next_candidate = bases[-1] + 2
         while not is_prime(next_candidate):
@@ -248,13 +295,14 @@ def halton(num_points, dimension, skip=0):
     return np.array(points)
 
 
-
-def random_k_means(num_points,
-                   dimension,
-                   num_steps=None,
-                   initial_points=None,
-                   dist_matrix_function=None,
-                   callback=None):
+def random_k_means(
+    num_points,
+    dimension,
+    num_steps=None,
+    initial_points=None,
+    dist_matrix_function=None,
+    callback=None,
+):
     """MacQueen's method.
 
     In its default setup, this algorithm converges to a centroidal Voronoi
@@ -298,8 +346,9 @@ def random_k_means(num_points,
     if num_steps is None:
         num_steps = 100 * num_points
     if initial_points is None:
-        cluster_centers = stratified_sampling(stratify_generalized(num_points,
-                                                                   dimension))
+        cluster_centers = stratified_sampling(
+            stratify_generalized(num_points, dimension)
+        )
     elif len(initial_points) == num_points:
         cluster_centers = np.array(initial_points)
         assert np.all(cluster_centers >= 0.0)
@@ -318,7 +367,10 @@ def random_k_means(num_points,
         random_point = random_point.ravel()
         nearest_index = int(np.argmin(distances, axis=1))
         nearest_cluster_center = cluster_centers[nearest_index, :].ravel()
-        if hasattr(dist_matrix_function, "max_dists_per_dim") and dist_matrix_function.max_dists_per_dim is not None:
+        if (
+            hasattr(dist_matrix_function, "max_dists_per_dim")
+            and dist_matrix_function.max_dists_per_dim is not None
+        ):
             one_dim_dists = np.abs(nearest_cluster_center - random_point)
             virtual_point = np.array(random_point)
             for j, dist in enumerate(one_dim_dists):
@@ -330,7 +382,9 @@ def random_k_means(num_points,
         else:
             virtual_point = random_point
         weight = weights[nearest_index]
-        cluster_centers[nearest_index, :] = (weight * nearest_cluster_center + virtual_point) / (weight + 1.0)
+        cluster_centers[nearest_index, :] = (
+            weight * nearest_cluster_center + virtual_point
+        ) / (weight + 1.0)
         cluster_centers[nearest_index, :] %= 1.0
         assert np.all(cluster_centers[nearest_index, :] <= 1.0)
         assert np.all(cluster_centers[nearest_index, :] >= 0.0)
@@ -338,15 +392,16 @@ def random_k_means(num_points,
     return cluster_centers
 
 
-
-def maximin_reconstruction(num_points,
-                           dimension,
-                           num_steps=None,
-                           initial_points=None,
-                           existing_points=None,
-                           use_reflection_edge_correction=False,
-                           dist_matrix_function=None,
-                           callback=None):
+def maximin_reconstruction(
+    num_points,
+    dimension,
+    num_steps=None,
+    initial_points=None,
+    existing_points=None,
+    use_reflection_edge_correction=False,
+    dist_matrix_function=None,
+    callback=None,
+):
     """Maximize the minimal distance in the unit hypercube with extensions.
 
     This algorithm carries out a user-specified number of iterations to
@@ -391,6 +446,7 @@ def maximin_reconstruction(num_points,
         http://hdl.handle.net/2003/34148
 
     """
+
     def dist_to_bound(point):
         return min(point.min(), (1.0 - point).min())
 
@@ -399,8 +455,7 @@ def maximin_reconstruction(num_points,
     if num_steps is None:
         num_steps = 100 * num_points
     if initial_points is None:
-        points = stratified_sampling(stratify_generalized(num_points,
-                                                          dimension))
+        points = stratified_sampling(stratify_generalized(num_points, dimension))
     elif len(initial_points) == num_points:
         points = np.array(initial_points)
         assert np.all(points >= 0.0)
@@ -415,10 +470,15 @@ def maximin_reconstruction(num_points,
     else:
         num_existing_points = len(existing_points)
     if dist_matrix_function is None:
-        dist_matrix_function = DistanceMatrixFunction(exponent=1,
-                                                      max_dists_per_dim=[1.0] * dimension)
-    norm_of_one_vector = 2.0 * dist_matrix_function(np.atleast_2d([0.0] * dimension),
-                                                    np.atleast_2d([0.5] * dimension))[0, 0]
+        dist_matrix_function = DistanceMatrixFunction(
+            exponent=1, max_dists_per_dim=[1.0] * dimension
+        )
+    norm_of_one_vector = (
+        2.0
+        * dist_matrix_function(
+            np.atleast_2d([0.0] * dimension), np.atleast_2d([0.5] * dimension)
+        )[0, 0]
+    )
     remaining_indices = list(range(num_points))
     random.shuffle(remaining_indices)
     removal_candidate_index = remaining_indices.pop()
@@ -428,12 +488,15 @@ def maximin_reconstruction(num_points,
     distances[removal_candidate_index] = np.inf
     current_dist = distances.min()
     if num_existing_points > 0:
-        dists_to_existing_points = dist_matrix_function(np.atleast_2d(removal_candidate),
-                                                        existing_points)[0]
+        dists_to_existing_points = dist_matrix_function(
+            np.atleast_2d(removal_candidate), existing_points
+        )[0]
         current_dist = min(current_dist, dists_to_existing_points.min())
     if use_reflection_edge_correction:
         # compare with 2 * ||1|| * (distance to nearest boundary)
-        relaxed_boundary_dist = 2.0 * norm_of_one_vector * dist_to_bound(removal_candidate)
+        relaxed_boundary_dist = (
+            2.0 * norm_of_one_vector * dist_to_bound(removal_candidate)
+        )
         current_dist = min(current_dist, relaxed_boundary_dist)
     # maximize minimal distance
     for _ in range(num_steps):
@@ -450,7 +513,9 @@ def maximin_reconstruction(num_points,
             distances[removal_candidate_index] = np.inf
             new_dist = min(new_dist, distances.min())
             if new_dist >= current_dist and num_existing_points > 0:
-                dists_to_existing_points = dist_matrix_function(new_point, existing_points)[0]
+                dists_to_existing_points = dist_matrix_function(
+                    new_point, existing_points
+                )[0]
                 new_dist = min(new_dist, dists_to_existing_points.min())
         if new_dist >= current_dist:
             # accept new point
@@ -468,27 +533,31 @@ def maximin_reconstruction(num_points,
                 removal_candidate_candidate_index = remaining_indices.pop()
                 removal_candidate_candidate = points[removal_candidate_candidate_index]
                 # calculate minimal distance
-                distances = dist_matrix_function(np.atleast_2d(removal_candidate_candidate), points)[0]
+                distances = dist_matrix_function(
+                    np.atleast_2d(removal_candidate_candidate), points
+                )[0]
                 distances[removal_candidate_candidate_index] = np.inf
                 candidate_candidate_dist = distances.min()
                 if num_existing_points > 0:
-                    dists_to_existing_points = dist_matrix_function(np.atleast_2d(removal_candidate_candidate),
-                                                                    existing_points)[0]
-                    candidate_candidate_dist = min(candidate_candidate_dist,
-                                                   dists_to_existing_points.min())
+                    dists_to_existing_points = dist_matrix_function(
+                        np.atleast_2d(removal_candidate_candidate), existing_points
+                    )[0]
+                    candidate_candidate_dist = min(
+                        candidate_candidate_dist, dists_to_existing_points.min()
+                    )
                 if use_reflection_edge_correction:
                     # compare with 2 * ||1|| * (distance to nearest boundary)
                     relaxed_boundary_dist = 2.0 * norm_of_one_vector
                     relaxed_boundary_dist *= dist_to_bound(removal_candidate_candidate)
-                    candidate_candidate_dist = min(candidate_candidate_dist,
-                                                   relaxed_boundary_dist)
+                    candidate_candidate_dist = min(
+                        candidate_candidate_dist, relaxed_boundary_dist
+                    )
                 if candidate_candidate_dist <= current_dist:
                     # found new removal candidate
                     removal_candidate = removal_candidate_candidate
                     current_dist = candidate_candidate_dist
                     removal_candidate_index = removal_candidate_candidate_index
     return points
-
 
 
 def stratify_conventional(num_strata, dimension):
@@ -531,12 +600,9 @@ def stratify_conventional(num_strata, dimension):
     return final_strata
 
 
-
-def stratify_generalized(num_strata,
-                         dimension,
-                         cuboid=None,
-                         detect_special_case=True,
-                         avoid_odd_numbers=True):
+def stratify_generalized(
+    num_strata, dimension, cuboid=None, detect_special_case=True, avoid_odd_numbers=True
+):
     """Generalized stratification of the unit hypercube.
 
     The adjective "generalized" pertains to the fact that the number of
@@ -628,12 +694,9 @@ def stratify_generalized(num_strata,
     return final_strata
 
 
-
-def stratified_sampling(strata,
-                        bates_param=1,
-                        latin="none",
-                        matching_init="approx",
-                        full_output=False):
+def stratified_sampling(
+    strata, bates_param=1, latin="none", matching_init="approx", full_output=False
+):
     """Stratified sampling with given strata.
 
     Parameters
@@ -680,6 +743,7 @@ def stratified_sampling(strata,
         in some dimension. Can only be non-empty for ``latin == "approx"``.
 
     """
+
     def bipartite_match(graph, matching=None):
         """Find maximum cardinality matching of a bipartite graph (U, V, E).
 
@@ -761,7 +825,11 @@ def stratified_sampling(strata,
     # sanity checks & initialization
     assert len(strata) > 0
     assert bates_param > 0
-    assert latin != "matching" or matching_init in ("approx", "greedy-det", "greedy-rand")
+    assert latin != "matching" or matching_init in (
+        "approx",
+        "greedy-det",
+        "greedy-rand",
+    )
     num_points = len(strata)
     dimension = len(strata[0][0])
     points = np.empty((num_points, dimension))
@@ -894,7 +962,9 @@ def reconstruct_strata_from_points(points, cuboid=None):
         # try to ensure we have points on either side of the split position by moving it
         if len(less_indices) == 0:
             min_index = np.argmin(current_points[greater_equal_indices, split_dim])
-            prelim_split_pos = current_points[min_index, split_dim] + sys.float_info.epsilon
+            prelim_split_pos = (
+                current_points[min_index, split_dim] + sys.float_info.epsilon
+            )
             split_bit_mask = current_points[:, split_dim] < prelim_split_pos
             less_indices = np.where(split_bit_mask)[0]
             greater_equal_indices = np.where(1 - split_bit_mask)[0]
@@ -912,7 +982,9 @@ def reconstruct_strata_from_points(points, cuboid=None):
         min_index = np.argmin(current_points[greater_equal_indices, split_dim])
         min_index = greater_equal_indices[min_index]
         # center split position between these two points
-        split_pos = (current_points[max_index, split_dim] + current_points[min_index, split_dim]) * 0.5
+        split_pos = (
+            current_points[max_index, split_dim] + current_points[min_index, split_dim]
+        ) * 0.5
         # create new strata
         new_upper = current_upper[:]
         new_upper[split_dim] = split_pos
@@ -923,7 +995,6 @@ def reconstruct_strata_from_points(points, cuboid=None):
         remaining_strata.extend((stratum1, stratum2))
     final_strata = [final_strata[tuple(point)] for point in points]
     return final_strata
-
 
 
 def lhd_matrix(num_points, dimension):
@@ -962,12 +1033,13 @@ def lhd_matrix(num_points, dimension):
     return design
 
 
-
-def improved_lhd_matrix(num_points,
-                        dimension,
-                        num_candidates=100,
-                        target_value=None,
-                        dist_matrix_function=None):
+def improved_lhd_matrix(
+    num_points,
+    dimension,
+    num_candidates=100,
+    target_value=None,
+    dist_matrix_function=None,
+):
     """Generate an 'improved' latin hypercube design matrix.
 
     This implementation uses an algorithm with quadratic run time. It is a
@@ -1013,7 +1085,9 @@ def improved_lhd_matrix(num_points,
     permutation = np.random.permutation
     if dist_matrix_function is None:
         max_dists = [num_points - 1.0] * dimension
-        dist_matrix_function = DistanceMatrixFunction(exponent=1, max_dists_per_dim=max_dists)
+        dist_matrix_function = DistanceMatrixFunction(
+            exponent=1, max_dists_per_dim=max_dists
+        )
     if target_value is None:
         target_value = np.inf
     design = np.empty((num_points, dimension), dtype="i")
@@ -1036,7 +1110,9 @@ def improved_lhd_matrix(num_points,
         for dim in dimensions:
             candidates[:, dim] = permutation(candidates[:, dim])
         # calculate distances to already chosen points
-        distances = dist_matrix_function(design[0:i, :], candidates[0:num_candidates, :])
+        distances = dist_matrix_function(
+            design[0:i, :], candidates[0:num_candidates, :]
+        )
         min_dists = distances.min(axis=0)
         # select best point according to distance criterion
         if not math.isinf(target_value):
@@ -1053,7 +1129,6 @@ def improved_lhd_matrix(num_points,
         assert not avail  # should be empty
     design[-1, :] = last_point
     return design
-
 
 
 def has_lhd_property(design_matrix):
@@ -1083,7 +1158,6 @@ def has_lhd_property(design_matrix):
     return True
 
 
-
 def transform_perturbed(design_matrix):
     """Transform a design matrix into a sample in the unit hypercube.
 
@@ -1107,7 +1181,6 @@ def transform_perturbed(design_matrix):
     points += np.random.rand(num_points, num_dimensions)
     points /= num_points
     return points
-
 
 
 def transform_cell_centered(design_matrix):
@@ -1134,7 +1207,6 @@ def transform_cell_centered(design_matrix):
     return points
 
 
-
 def transform_spread_out(design_matrix):
     """Transform a design matrix into a sample in the unit hypercube.
 
@@ -1156,9 +1228,8 @@ def transform_spread_out(design_matrix):
     """
     points = np.array(design_matrix, dtype="d")
     num_points = len(points)
-    points /= (num_points - 1.0)
+    points /= num_points - 1.0
     return points
-
 
 
 def transform_anchored(design_matrix):
@@ -1185,7 +1256,6 @@ def transform_anchored(design_matrix):
     num_points = len(points)
     points /= num_points
     return points
-
 
 
 def shifted_randomly(points):

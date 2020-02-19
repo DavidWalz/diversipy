@@ -12,6 +12,6 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/DavidWalz/diversipy",
     packages=find_packages(),
-    python_requires='>=3.6',
+    python_requires=">=3.6",
     install_requires=["numpy", "scipy"],
 )
