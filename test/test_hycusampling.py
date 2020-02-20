@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import diversipy
 
@@ -14,22 +15,28 @@ def test_scaled():
             from_cuboid=([-10, -1], [10, 1]),
             to_cuboid=diversipy.unitcube(2),
         ),
-        np.array([[0, 0], [1, 1]]),
+        [[0, 0], [1, 1]],
     )
 
 
 def test_grid():
     np.testing.assert_almost_equal(
         diversipy.grid(num_points=4, dimension=2),
-        np.array([[0, 0], [0, 1], [1, 0], [1, 1]]),
+        [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]],
     )
+    diversipy.grid(num_points=125, dimension=3)  # this should work
+    with pytest.raises(AssertionError):
+        diversipy.grid(num_points=100, dimension=3)  # wrong number of points
 
 
 def test_sukharev_grid():
     np.testing.assert_almost_equal(
         diversipy.sukharev_grid(num_points=4, dimension=2),
-        np.array([[0.25, 0.25], [0.25, 0.75], [0.75, 0.25], [0.75, 0.75]]),
+        [[0.25, 0.25], [0.25, 0.75], [0.75, 0.25], [0.75, 0.75]],
     )
+    diversipy.sukharev_grid(num_points=125, dimension=3)  # this should work
+    with pytest.raises(AssertionError):
+        diversipy.sukharev_grid(num_points=100, dimension=3)  # wrong number of points
 
 
 def test_random_uniform():

@@ -79,7 +79,7 @@ def grid(num_points, dimension):
     points : (`num_points`, `dimension`) numpy array
 
     """
-    points_per_axis = int(num_points ** (1.0 / dimension))
+    points_per_axis = int(round(num_points ** (1.0 / dimension)))
     assert points_per_axis ** dimension == num_points
     possible_values = list(range(points_per_axis))
     divisor = points_per_axis - 1.0
@@ -110,7 +110,7 @@ def sukharev_grid(num_points, dimension):
     points : (`num_points`, `dimension`) numpy array
 
     """
-    points_per_axis = int(num_points ** (1.0 / dimension))
+    points_per_axis = int(round(num_points ** (1.0 / dimension)))
     assert points_per_axis ** dimension == num_points
     possible_values = [x + 0.5 for x in range(points_per_axis)]
     divisor = points_per_axis
@@ -586,9 +586,7 @@ def stratify_conventional(num_strata, dimension):
     # shortcuts & initialization
     assert num_strata > 0
     assert dimension > 0
-    points_per_axis = int(num_strata ** (1.0 / dimension))
-    if points_per_axis ** dimension != num_strata:
-        points_per_axis += 1
+    points_per_axis = int(round(num_strata ** (1.0 / dimension)))
     assert points_per_axis ** dimension == num_strata
     final_strata = []
     extent = 1.0 / points_per_axis
@@ -653,11 +651,8 @@ def stratify_generalized(
     assert len(cuboid[1]) == dimension
     # special case
     if detect_special_case and cuboid == unitcube(dimension):
-        points_per_axis = int(num_strata ** (1.0 / dimension))
-        is_integer_power = points_per_axis ** dimension == num_strata
-        # check because of potential rounding error:
-        is_integer_power |= (points_per_axis + 1) ** dimension == num_strata
-        if is_integer_power:
+        points_per_axis = int(round(num_strata ** (1.0 / dimension)))
+        if points_per_axis ** dimension == num_strata:
             return stratify_conventional(num_strata, dimension)
     # more initialization
     dimensions = list(range(dimension))
