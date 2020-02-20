@@ -1,4 +1,6 @@
 # diversipy
+[![Build Status](https://travis-ci.org/DavidWalz/diversipy.svg?branch=master)](https://travis-ci.org/DavidWalz/diversipy)
+
 [Documentation](https://www.simonwessing.de/diversipy/doc/)
 
 diversipy is a collection of algorithms dealing with three different but related topics. The first topic is super-uniform sampling of the unit hypercube. ‘Super-uniform’ in this context means that the obtained point sample should be more uniform than a random uniform sample, which is a desirable property in many applications. One such application is the design of computer experiments, where typically space-filling experimental designs are used. After creation, the samples can be transformed from the unit hypercube to arbitrary cuboids.
