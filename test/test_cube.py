@@ -44,8 +44,8 @@ def test_random_uniform():
     assert (X >= 0).all() and (X <= 1).all() and X.shape == (100, 20)
 
 
-def test_halton():
-    X = diversipy.halton(num_points=100, dimension=20)
+def test_random_halton():
+    X = diversipy.random_halton(num_points=100, dimension=20)
     assert (X >= 0).all() and (X <= 1).all() and X.shape == (100, 20)
 
 
@@ -54,8 +54,8 @@ def test_random_k_means():
     assert (X >= 0).all() and (X <= 1).all() and X.shape == (100, 20)
 
 
-def test_maximin_reconstruction():
-    X = diversipy.maximin_reconstruction(num_points=100, dimension=5)
+def test_random_maximin():
+    X = diversipy.random_maximin(num_points=100, dimension=5)
     assert (X >= 0).all() and (X <= 1).all() and X.shape == (100, 5)
 
 
@@ -67,11 +67,11 @@ def test_stratify_generalized():
     pass
 
 
-def test_stratified_sampling():
+def test_random_from_strata():
     pass
 
 
-def test_reconstruct_strata_from_points():
+def test_strata_from_points():
     pass
 
 
@@ -83,14 +83,14 @@ def test_korobov_design_matrix():
     pass
 
 
-def test_lhd_matrix():
-    X = diversipy.lhd_matrix(num_points=100, dimension=5)
-    assert diversipy.has_lhd_property(X)
+def test_latin_design():
+    X = diversipy.latin_design(num_points=100, dimension=5)
+    assert diversipy.is_latin(X)
 
 
-def test_improved_lhd_matrix():
-    X = diversipy.improved_lhd_matrix(num_points=100, dimension=5)
-    assert diversipy.has_lhd_property(X)
+def test_improved_latin_design():
+    X = diversipy.improved_latin_design(num_points=100, dimension=5)
+    assert diversipy.is_latin(X)
 
 
 def test_transform_anchored():
@@ -101,7 +101,7 @@ def test_transform_anchored():
 
 
 def test_transform_perturbed():
-    X = diversipy.lhd_matrix(100, 5)
+    X = diversipy.latin_design(100, 5)
     X = diversipy.transform_perturbed(X)
     assert (X >= 0).all() and (X <= 1).all()
 

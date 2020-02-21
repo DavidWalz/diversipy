@@ -120,74 +120,12 @@ def sukharev_grid(num_points, dimension):
     return points
 
 
-def rank1_design_matrix(num_points, dimension, generator_vector=None):
-    """Design matrix for a rank-1 lattice.
-
-    This algorithm is deterministic and has linear run time.
-
-    Parameters
-    ----------
-    num_points : int
-        The number of points to generate.
-    dimension : int
-        The dimension of the space.
-    generator_vector : array_like, optional
-        An integer vector of length `dimension`.
-
-    Returns
-    -------
-    design : (`num_points`, `dimension`) numpy array
-        Matrix with integers corresponding to the bins of a virtual grid.
-
-    """
-    if generator_vector is None:
-        generator_vector = np.random.randint(2, num_points, dimension)
-    assert len(generator_vector) == dimension
-    generator_vector = np.array(generator_vector) % num_points
-    points = np.array(
-        [i * generator_vector % num_points for i in range(num_points)], dtype="i"
-    )
-    return points
-
-
-def korobov_design_matrix(num_points, dimension, generator_param=None):
-    """Design matrix for a Korobov lattice.
-
-    This is a special case of the rank-1 lattice. The design has the LHD
-    property if ``gcd(num_points, generator_param) == 1``. The algorithm is
-    deterministic and has linear run time.
-
-    Parameters
-    ----------
-    num_points : int
-        The number of points to generate.
-    dimension : int
-        The dimension of the space.
-    generator_param : int, optional
-        An integer used for constructing a generator vector.
-
-    Returns
-    -------
-    design : (`num_points`, `dimension`) numpy array
-        Matrix with integers corresponding to the bins of a virtual grid.
-
-    """
-    if generator_param is None:
-        generator_param = random.randrange(2, num_points)
-    generator_param %= num_points
-    assert generator_param > 1
-    generator_vector = [1] * dimension
-    for i in range(1, dimension):
-        generator_vector[i] = (generator_param * generator_vector[i - 1]) % num_points
-    return rank1_design_matrix(num_points, dimension, generator_vector)
-
-
 def random_uniform(num_points, dimension):
     """Syntactic sugar for :func:`numpy.random.rand`."""
     return np.random.rand(num_points, dimension)
 
 
-def halton(num_points, dimension, skip=0):
+def random_halton(num_points, dimension, skip=0):
     """Generate a Halton point set.
 
     Quasirandom sequence using the default initialization with the first
@@ -346,7 +284,7 @@ def random_k_means(
     if num_steps is None:
         num_steps = 100 * num_points
     if initial_points is None:
-        cluster_centers = stratified_sampling(
+        cluster_centers = random_from_strata(
             stratify_generalized(num_points, dimension)
         )
     elif len(initial_points) == num_points:
@@ -392,7 +330,7 @@ def random_k_means(
     return cluster_centers
 
 
-def maximin_reconstruction(
+def random_maximin(
     num_points,
     dimension,
     num_steps=None,
@@ -455,7 +393,7 @@ def maximin_reconstruction(
     if num_steps is None:
         num_steps = 100 * num_points
     if initial_points is None:
-        points = stratified_sampling(stratify_generalized(num_points, dimension))
+        points = random_from_strata(stratify_generalized(num_points, dimension))
     elif len(initial_points) == num_points:
         points = np.array(initial_points)
         assert np.all(points >= 0.0)
@@ -689,7 +627,7 @@ def stratify_generalized(
     return final_strata
 
 
-def stratified_sampling(
+def random_from_strata(
     strata, bates_param=1, latin="none", matching_init="approx", full_output=False
 ):
     """Stratified sampling with given strata.
@@ -899,7 +837,7 @@ def stratified_sampling(
         return points
 
 
-def reconstruct_strata_from_points(points, cuboid=None):
+def strata_from_points(points, cuboid=None):
     """Partitions the cuboid so that each point has its own hyperbox.
 
     This partitioning is stochastic (ties are broken randomly). The obtained
@@ -992,7 +930,69 @@ def reconstruct_strata_from_points(points, cuboid=None):
     return final_strata
 
 
-def lhd_matrix(num_points, dimension):
+def rank1_design(num_points, dimension, generator_vector=None):
+    """Design matrix for a rank-1 lattice.
+
+    This algorithm is deterministic and has linear run time.
+
+    Parameters
+    ----------
+    num_points : int
+        The number of points to generate.
+    dimension : int
+        The dimension of the space.
+    generator_vector : array_like, optional
+        An integer vector of length `dimension`.
+
+    Returns
+    -------
+    design : (`num_points`, `dimension`) numpy array
+        Matrix with integers corresponding to the bins of a virtual grid.
+
+    """
+    if generator_vector is None:
+        generator_vector = np.random.randint(2, num_points, dimension)
+    assert len(generator_vector) == dimension
+    generator_vector = np.array(generator_vector) % num_points
+    points = np.array(
+        [i * generator_vector % num_points for i in range(num_points)], dtype="i"
+    )
+    return points
+
+
+def korobov_design(num_points, dimension, generator_param=None):
+    """Design matrix for a Korobov lattice.
+
+    This is a special case of the rank-1 lattice. The design has the LHD
+    property if ``gcd(num_points, generator_param) == 1``. The algorithm is
+    deterministic and has linear run time.
+
+    Parameters
+    ----------
+    num_points : int
+        The number of points to generate.
+    dimension : int
+        The dimension of the space.
+    generator_param : int, optional
+        An integer used for constructing a generator vector.
+
+    Returns
+    -------
+    design : (`num_points`, `dimension`) numpy array
+        Matrix with integers corresponding to the bins of a virtual grid.
+
+    """
+    if generator_param is None:
+        generator_param = random.randrange(2, num_points)
+    generator_param %= num_points
+    assert generator_param > 1
+    generator_vector = [1] * dimension
+    for i in range(1, dimension):
+        generator_vector[i] = (generator_param * generator_vector[i - 1]) % num_points
+    return rank1_design_matrix(num_points, dimension, generator_vector)
+
+
+def latin_design(num_points, dimension):
     """Generate a random latin hypercube design matrix.
 
     Latin hypercube designs sometimes give an advantage over random uniform
@@ -1028,7 +1028,7 @@ def lhd_matrix(num_points, dimension):
     return design
 
 
-def improved_lhd_matrix(
+def improved_latin_design(
     num_points,
     dimension,
     num_candidates=100,
@@ -1126,7 +1126,7 @@ def improved_lhd_matrix(
     return design
 
 
-def has_lhd_property(design_matrix):
+def is_latin(design_matrix):
     """Check if design matrix has the LHD property.
 
     It is assumed that counting starts from zero and points are arranged
