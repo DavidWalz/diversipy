@@ -12,6 +12,7 @@ author = "Simon Wessing"
 release = "0.8"
 
 # -- General configuration ---------------------------------------------------
+master_doc = "index"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.coverage",
