@@ -1,8 +1,8 @@
 
-:mod:`hycusampling` --- Uniform sampling of the unit hypercube
+:mod:`cube` --- Uniform sampling of the unit hypercube
 ==============================================================
 
-.. automodule:: diversipy.hycusampling
+.. automodule:: diversipy.cube
     :synopsis: Uniform sampling of the unit hypercube.
 
 

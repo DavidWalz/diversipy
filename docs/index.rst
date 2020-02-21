@@ -8,7 +8,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   hycusampling.rst
+   cube.rst
    subset.rst
    indicator.rst
    distance.rst
