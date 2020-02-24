@@ -10,11 +10,9 @@ import sys
 import math
 import random
 import itertools
-
 import numpy as np
 
-from diversipy.distance import calc_euclidean_dist_matrix
-from diversipy.distance import DistanceMatrixFunction
+from .distance import distance_matrix, distance_to_boundary
 
 
 def unitcube(dimension):
@@ -238,7 +236,7 @@ def random_k_means(
     dimension,
     num_steps=None,
     initial_points=None,
-    dist_matrix_function=None,
+    dist_args={},
     callback=None,
 ):
     """MacQueen's method.
@@ -259,9 +257,8 @@ def random_k_means(
     initial_points : array_like, optional
         The point set to improve (if None, a sample is drawn with
         :func:`stratified_sampling`).
-    dist_matrix_function : callable, optional
-        The function to compute the distances. Default is Euclidean
-        distance.
+    dist_args : dict, optional
+        Arguments for the distance calculation.
     callback : callable, optional
         If provided, it is called in each iteration with the current point
         set as argument for monitoring progress.
@@ -278,7 +275,6 @@ def random_k_means(
         Volume 1: Statistics, pp. 281--297, University of California Press,
         Berkeley, Calif., 1967.
         http://projecteuclid.org/euclid.bsmsp/1200512992.
-
     """
     # initialization
     if num_steps is None:
@@ -294,21 +290,16 @@ def random_k_means(
     else:
         raise ValueError("len(initial_points) must be equal to num_points")
     weights = [1.0] * num_points
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
     # begin iteration
     for _ in range(num_steps):
         if callback is not None:
             callback(cluster_centers)
         random_point = np.random.rand(1, dimension)
-        distances = dist_matrix_function(random_point, cluster_centers)
+        distances = distance_matrix(random_point, cluster_centers, **dist_args)
         random_point = random_point.ravel()
         nearest_index = int(np.argmin(distances, axis=1))
         nearest_cluster_center = cluster_centers[nearest_index, :].ravel()
-        if (
-            hasattr(dist_matrix_function, "max_dists_per_dim")
-            and dist_matrix_function.max_dists_per_dim is not None
-        ):
+        if dist_args.get("max_dist", None) is not None:
             one_dim_dists = np.abs(nearest_cluster_center - random_point)
             virtual_point = np.array(random_point)
             for j, dist in enumerate(one_dim_dists):
@@ -337,7 +328,7 @@ def random_maximin(
     initial_points=None,
     existing_points=None,
     use_reflection_edge_correction=False,
-    dist_matrix_function=None,
+    dist_args={"norm": 1, "max_dist": 1},
     callback=None,
 ):
     """Maximize the minimal distance in the unit hypercube with extensions.
@@ -366,9 +357,8 @@ def random_maximin(
         If True, selection pressure in boundary regions will be increased by
         considering additional distances to virtual points, which are
         created by mirroring the real points at the boundary.
-    dist_matrix_function : callable, optional
-        The function to compute the distances. Default is Manhattan distance
-        on a torus.
+    dist_args : dict, optional
+        Arguments for the distance calculation. Default is L1 distance on a torus.
     callback : callable, optional
         If provided, it is called in each iteration with the current point
         set as argument for monitoring progress.
@@ -384,10 +374,6 @@ def random_maximin(
         http://hdl.handle.net/2003/34148
 
     """
-
-    def dist_to_bound(point):
-        return min(point.min(), (1.0 - point).min())
-
     # initialization and sanity checks
     assert num_points > 0
     if num_steps is None:
@@ -407,33 +393,27 @@ def random_maximin(
         num_existing_points = 0
     else:
         num_existing_points = len(existing_points)
-    if dist_matrix_function is None:
-        dist_matrix_function = DistanceMatrixFunction(
-            exponent=1, max_dists_per_dim=[1.0] * dimension
-        )
-    norm_of_one_vector = (
-        2.0
-        * dist_matrix_function(
-            np.atleast_2d([0.0] * dimension), np.atleast_2d([0.5] * dimension)
-        )[0, 0]
-    )
+    norm_of_one_vector = distance_matrix(
+        np.zeros(dimension), 0.5 * np.ones(dimension), **dist_args
+    )[0, 0]
+    norm_of_one_vector *= 2
     remaining_indices = list(range(num_points))
     random.shuffle(remaining_indices)
     removal_candidate_index = remaining_indices.pop()
     removal_candidate = points[removal_candidate_index]
     # initial distance calculations
-    distances = dist_matrix_function(np.atleast_2d(removal_candidate), points)[0]
+    distances = distance_matrix(removal_candidate, points, **dist_args)[0]
     distances[removal_candidate_index] = np.inf
     current_dist = distances.min()
     if num_existing_points > 0:
-        dists_to_existing_points = dist_matrix_function(
-            np.atleast_2d(removal_candidate), existing_points
+        dists_to_existing_points = distance_matrix(
+            removal_candidate, existing_points, **dist_args
         )[0]
         current_dist = min(current_dist, dists_to_existing_points.min())
     if use_reflection_edge_correction:
         # compare with 2 * ||1|| * (distance to nearest boundary)
         relaxed_boundary_dist = (
-            2.0 * norm_of_one_vector * dist_to_bound(removal_candidate)
+            2 * norm_of_one_vector * distance_to_boundary(removal_candidate)
         )
         current_dist = min(current_dist, relaxed_boundary_dist)
     # maximize minimal distance
@@ -444,15 +424,17 @@ def random_maximin(
         new_dist = np.inf
         if use_reflection_edge_correction:
             # compare with 2 * ||1|| * (distance to nearest boundary)
-            relaxed_boundary_dist = 2.0 * norm_of_one_vector * dist_to_bound(new_point)
+            relaxed_boundary_dist = (
+                2 * norm_of_one_vector * distance_to_boundary(new_point)
+            )
             new_dist = relaxed_boundary_dist
         if new_dist >= current_dist:
-            distances = dist_matrix_function(new_point, points)[0]
+            distances = distance_matrix(new_point, points, **dist_args)[0]
             distances[removal_candidate_index] = np.inf
             new_dist = min(new_dist, distances.min())
             if new_dist >= current_dist and num_existing_points > 0:
-                dists_to_existing_points = dist_matrix_function(
-                    new_point, existing_points
+                dists_to_existing_points = distance_matrix(
+                    new_point, existing_points, **dist_args
                 )[0]
                 new_dist = min(new_dist, dists_to_existing_points.min())
         if new_dist >= current_dist:
@@ -471,14 +453,14 @@ def random_maximin(
                 removal_candidate_candidate_index = remaining_indices.pop()
                 removal_candidate_candidate = points[removal_candidate_candidate_index]
                 # calculate minimal distance
-                distances = dist_matrix_function(
-                    np.atleast_2d(removal_candidate_candidate), points
+                distances = distance_matrix(
+                    removal_candidate_candidate, points, **dist_args
                 )[0]
                 distances[removal_candidate_candidate_index] = np.inf
                 candidate_candidate_dist = distances.min()
                 if num_existing_points > 0:
-                    dists_to_existing_points = dist_matrix_function(
-                        np.atleast_2d(removal_candidate_candidate), existing_points
+                    dists_to_existing_points = distance_matrix(
+                        removal_candidate_candidate, existing_points, **dist_args
                     )[0]
                     candidate_candidate_dist = min(
                         candidate_candidate_dist, dists_to_existing_points.min()
@@ -486,7 +468,9 @@ def random_maximin(
                 if use_reflection_edge_correction:
                     # compare with 2 * ||1|| * (distance to nearest boundary)
                     relaxed_boundary_dist = 2.0 * norm_of_one_vector
-                    relaxed_boundary_dist *= dist_to_bound(removal_candidate_candidate)
+                    relaxed_boundary_dist *= distance_to_boundary(
+                        removal_candidate_candidate
+                    )
                     candidate_candidate_dist = min(
                         candidate_candidate_dist, relaxed_boundary_dist
                     )
@@ -989,7 +973,7 @@ def korobov_design(num_points, dimension, generator_param=None):
     generator_vector = [1] * dimension
     for i in range(1, dimension):
         generator_vector[i] = (generator_param * generator_vector[i - 1]) % num_points
-    return rank1_design_matrix(num_points, dimension, generator_vector)
+    return rank1_design(num_points, dimension, generator_vector)
 
 
 def latin_design(num_points, dimension):
@@ -1033,7 +1017,7 @@ def improved_latin_design(
     dimension,
     num_candidates=100,
     target_value=None,
-    dist_matrix_function=None,
+    dist_args={"norm": 1, "max_dist": 1},
 ):
     """Generate an 'improved' latin hypercube design matrix.
 
@@ -1057,10 +1041,8 @@ def improved_latin_design(
     target_value : float, optional
         The distance a candidate should ideally have to the already chosen
         points of the LHD.
-    dist_matrix_function : callable, optional
-        Defines the distance used. Default is Manhattan distance on a torus
-        (maximum distance is ``num_points - 1``, well-suited for
-        :func:`edge_lhs`).
+    dist_args : dict, optional
+        Defines the distance measure. Default is Manhattan distance on a torus.
 
     Returns
     -------
@@ -1076,13 +1058,10 @@ def improved_latin_design(
 
     """
     # shortcuts & initialization
+    if dist_args.get("max_dist", None) is not None:
+        dist_args["max_dist"] = num_points - 1
     dimensions = list(range(dimension))
     permutation = np.random.permutation
-    if dist_matrix_function is None:
-        max_dists = [num_points - 1.0] * dimension
-        dist_matrix_function = DistanceMatrixFunction(
-            exponent=1, max_dists_per_dim=max_dists
-        )
     if target_value is None:
         target_value = np.inf
     design = np.empty((num_points, dimension), dtype="i")
@@ -1105,8 +1084,8 @@ def improved_latin_design(
         for dim in dimensions:
             candidates[:, dim] = permutation(candidates[:, dim])
         # calculate distances to already chosen points
-        distances = dist_matrix_function(
-            design[0:i, :], candidates[0:num_candidates, :]
+        distances = distance_matrix(
+            design[0:i, :], candidates[0:num_candidates, :], **dist_args
         )
         min_dists = distances.min(axis=0)
         # select best point according to distance criterion

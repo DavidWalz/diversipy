@@ -8,11 +8,9 @@ to retain the structure of the original point set.
 """
 import heapq
 import random
-
 import numpy as np
 
-from diversipy.distance import calc_dists_to_boundary
-from diversipy.distance import calc_euclidean_dist_matrix
+from .distance import distance_matrix
 
 
 class MinBoundingBox:
@@ -61,9 +59,7 @@ class MinBoundingBox:
         self.min_bounds = min_bounds
         self.max_bounds = max_bounds
 
-    def closest_point_index(
-        self, sought_point, candidate_indices, dist_matrix_function=None
-    ):
+    def closest_point_index(self, sought_point, candidate_indices, dist_args={}):
         """Return the index of the point closest to a certain target.
 
         Parameters
@@ -73,7 +69,7 @@ class MinBoundingBox:
         candidate_indices : array_like
             Indices into the container of all points for the candidates to
             be considered.
-        dist_matrix_function : callable, optional
+        dist_args : dict, optional
             An arbitrary distance function. Default is Euclidean distance.
 
         Returns
@@ -82,18 +78,15 @@ class MinBoundingBox:
 
         """
         all_points = self.all_points
-        if dist_matrix_function is None:
-            dist_matrix_function = calc_euclidean_dist_matrix
         candidates_array = np.take(all_points, candidate_indices, axis=0)
-        distances = dist_matrix_function(np.atleast_2d(sought_point), candidates_array)
+        distances = distance_matrix(
+            np.atleast_2d(sought_point), candidates_array, **dist_args
+        )
         closest_point_index = candidate_indices[np.argmin(distances)]
         return closest_point_index
 
     def obtain_representative(
-        self,
-        selection_target="centroid_of_hypercube",
-        tournament_size=0,
-        dist_matrix_function=None,
+        self, selection_target="centroid_of_hypercube", tournament_size=0, dist_args={},
     ):
         """Return a point representing this cluster.
 
@@ -109,8 +102,8 @@ class MinBoundingBox:
             points. Any other value of this parameter leads to consideration
             of all points. Note that a value of 1 leads to a random choice
             among the clusters members, regardless of the target point.
-        dist_matrix_function : callable, optional
-            An arbitrary distance function. Default is Euclidean distance.
+        dist_args : dict, optional
+            Arguments for the distance calculation.
             This choice does not affect the selection strategy
             ``max_dist_from_boundary``.
 
@@ -120,16 +113,13 @@ class MinBoundingBox:
 
         """
         index = self.obtain_representative_index(
-            selection_target, tournament_size, dist_matrix_function
+            selection_target, tournament_size, dist_args
         )
         representative = self.all_points[index]
         return representative
 
     def obtain_representative_index(
-        self,
-        selection_target="centroid_of_hypercube",
-        tournament_size=0,
-        dist_matrix_function=None,
+        self, selection_target="centroid_of_hypercube", tournament_size=0, dist_args={},
     ):
         """Return the index to a point representing this cluster.
 
@@ -145,8 +135,8 @@ class MinBoundingBox:
             points. Any other value of this parameter leads to consideration
             of all points. Note that a value of 1 leads to a random choice
             among the clusters members, regardless of the target point.
-        dist_matrix_function : callable, optional
-            An arbitrary distance function. Default is Euclidean distance.
+        dist_args : dict, optional
+            Arguments for the distance calculation.
             This choice does not affect the selection strategy
             ``max_dist_from_boundary``.
 
@@ -187,12 +177,12 @@ class MinBoundingBox:
         if selection_target == "max_dist_from_boundary":
             hypercube = (min_bounds, max_bounds)
             candidates_array = np.take(all_points, candidate_point_indices, axis=0)
-            dists_to_bound = calc_dists_to_boundary(candidates_array, hypercube)
+            dists_to_bound = distance_matrix(candidates_array, hypercube, **dist_args)
             max_dist_index = np.argmax(dists_to_bound)
             index = candidate_point_indices[max_dist_index]
         else:
             index = self.closest_point_index(
-                target_point, candidate_point_indices, dist_matrix_function
+                target_point, candidate_point_indices, dist_args
             )
         return index
 
@@ -281,7 +271,7 @@ def psa_select(
     available_points_indices=None,
     selection_target="centroid_of_hypercube",
     tournament_size=0,
-    dist_matrix_function=None,
+    dist_args={},
 ):
     """Combine partitioning and determination of representatives.
 
@@ -308,8 +298,8 @@ def psa_select(
         points. Any other value of this parameter leads to consideration
         of all points. Note that a value of 1 leads to a random choice
         among the clusters members, regardless of the target point.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict, optional
+        Arguments for the distance calculation.
         This choice does not affect the selection strategy
         ``max_dist_from_boundary``.
 
@@ -322,7 +312,7 @@ def psa_select(
     representatives = []
     for cluster in clusters:
         representative = cluster.obtain_representative(
-            selection_target, tournament_size, dist_matrix_function
+            selection_target, tournament_size, dist_args
         )
         representatives.append(representative)
     if isinstance(points, np.ndarray):
@@ -331,11 +321,7 @@ def psa_select(
 
 
 def select_greedy_maximin(
-    points,
-    num_selected_points,
-    existing_points=None,
-    dist_matrix_function=None,
-    callback=None,
+    points, num_selected_points, existing_points=None, dist_args={}, callback=None,
 ):
     """Greedily select a subset according to maximin criterion.
 
@@ -351,8 +337,8 @@ def select_greedy_maximin(
     existing_points : array_like, optional
         Points that cannot be modified anymore, but should be considered in
         the distance computations.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict, optional
+        Arguments for the distance calculation.
     callback : callable, optional
         If provided, it is called as ``callback(indices, dists)`` in each
         iteration for monitoring progress. ``indices`` is the current set
@@ -372,9 +358,7 @@ def select_greedy_maximin(
     existing_points = np.atleast_2d(existing_points)
     if existing_points.size == 0:
         existing_points = np.array([random.choice(points)])
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
-    distances = dist_matrix_function(existing_points, points_array)
+    distances = distance_matrix(existing_points, points_array, **dist_args)
     aggregated_dist_criteria = distances.min(axis=0)
     previous_index = np.argmax(aggregated_dist_criteria)
     selected_indices = [previous_index]
@@ -382,7 +366,7 @@ def select_greedy_maximin(
         if callback is not None:
             callback(selected_indices, aggregated_dist_criteria)
         previous_point = np.atleast_2d(points_array[previous_index])
-        distances = dist_matrix_function(previous_point, points_array)
+        distances = distance_matrix(previous_point, points_array, **dist_args)
         aggregated_dist_criteria = np.minimum(
             aggregated_dist_criteria, distances.ravel()
         )
@@ -395,11 +379,7 @@ def select_greedy_maximin(
 
 
 def select_greedy_maxisum(
-    points,
-    num_selected_points,
-    existing_points=None,
-    dist_matrix_function=None,
-    callback=None,
+    points, num_selected_points, existing_points=None, dist_args={}, callback=None,
 ):
     """Greedily select a subset according to maxisum criterion.
 
@@ -418,8 +398,8 @@ def select_greedy_maxisum(
     existing_points : array_like, optional
         Points that cannot be modified anymore, but should be considered in
         the distance computations.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict, optional
+        Arguments for the distance calculation.
     callback : callable, optional
         If provided, it is called as ``callback(indices, dists)`` in each
         iteration for monitoring progress. ``indices`` is the current set
@@ -439,9 +419,7 @@ def select_greedy_maxisum(
     existing_points = np.atleast_2d(existing_points)
     if existing_points.size == 0:
         existing_points = np.array([random.choice(points)])
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
-    distances = dist_matrix_function(existing_points, points_array)
+    distances = distance_matrix(existing_points, points_array, **dist_args)
     aggregated_dist_criteria = distances.sum(axis=0)
     previous_index = np.argmax(aggregated_dist_criteria)
     selected_indices = [previous_index]
@@ -449,7 +427,7 @@ def select_greedy_maxisum(
         if callback is not None:
             callback(selected_indices, aggregated_dist_criteria)
         previous_point = np.atleast_2d(points[previous_index])
-        distances = dist_matrix_function(previous_point, points_array)
+        distances = distance_matrix(previous_point, points_array, **dist_args)
         aggregated_dist_criteria += distances.ravel()
         aggregated_dist_criteria[selected_indices] = -np.inf
         previous_index = np.argmax(aggregated_dist_criteria)
@@ -465,7 +443,7 @@ def select_greedy_energy(
     num_selected_points,
     existing_points=None,
     exponent=None,
-    dist_matrix_function=None,
+    dist_args={},
     callback=None,
 ):
     """Greedily select a subset according to potential energy.
@@ -490,8 +468,8 @@ def select_greedy_energy(
         Parameter controlling the uniformity. Must be >= 0.
         Values greater or equal the dimension lead to uniformity, smaller
         values to a higher density in exterior regions.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict, optional
+        Arguments for the distance calculation.
     callback : callable, optional
         If provided, it is called as ``callback(indices, dists)`` in each
         iteration for monitoring progress. ``indices`` is the current set
@@ -518,12 +496,10 @@ def select_greedy_energy(
     existing_points = np.atleast_2d(existing_points)
     if existing_points.size == 0:
         existing_points = np.array([random.choice(points)])
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
     _, dimension = points_array.shape
     if exponent is None:
         exponent = dimension + 1
-    distances = dist_matrix_function(existing_points, points_array)
+    distances = distance_matrix(existing_points, points_array, **dist_args)
     with np.errstate(divide="ignore"):
         if exponent == 0:
             distances = np.log(1.0 / distances)
@@ -536,7 +512,7 @@ def select_greedy_energy(
         if callback is not None:
             callback(selected_indices, aggregated_dist_criteria)
         previous_point = np.atleast_2d(points[previous_index])
-        distances = dist_matrix_function(previous_point, points_array)
+        distances = distance_matrix(previous_point, points_array, **dist_args)
         with np.errstate(divide="ignore"):
             if exponent == 0:
                 distances = np.log(1.0 / distances)

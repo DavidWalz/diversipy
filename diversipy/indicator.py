@@ -7,16 +7,10 @@ disadvantages. An overview is given in [Wessing2015]_.
 """
 import math
 from decimal import Decimal
-
 import numpy as np
+from scipy.spatial import Voronoi
 
-try:
-    from scipy.spatial import Voronoi
-except ImportError:
-    pass
-
-from diversipy.distance import calc_euclidean_dist_matrix
-from diversipy.distance import calc_dists_to_boundary
+from .distance import distance_matrix, distance_to_boundary
 
 
 def covering_radius(points, repair_margin=1e-8, full_output=False):
@@ -26,7 +20,6 @@ def covering_radius(points, repair_margin=1e-8, full_output=False):
     tessellation. It should be minimized. Coordinates of points must be
     >0 and <1.
 
-    .. note:: This function requires SciPy for the Voronoi tessellation.
     .. warning:: The run time is exponential in the dimension.
 
     Parameters
@@ -76,15 +69,14 @@ def covering_radius(points, repair_margin=1e-8, full_output=False):
     relevant_vertices = vertices[relevant_indices]
     relevant_vertices = np.minimum(relevant_vertices, 1.0)
     relevant_vertices = np.maximum(relevant_vertices, 0.0)
-    dist_matrix = calc_euclidean_dist_matrix(relevant_vertices, points)
-    cov_radius = dist_matrix.min(axis=1).max()
+    cov_radius = distance_matrix(relevant_vertices, points).min(axis=1).max()
     if full_output:
         return cov_radius, voronoi_tessellation
     else:
         return cov_radius
 
 
-def covering_radius_upper_bound(points, strata, dist_matrix_function=None):
+def covering_radius_upper_bound(points, strata, dist_args):
     """Upper bound for the covering radius.
 
     The idea for this measure was presented in [Wessing2018]_.
@@ -98,8 +90,6 @@ def covering_radius_upper_bound(points, strata, dist_matrix_function=None):
         :func:`stratify_generalized<diversipy.hycusampling.stratify_generalized>`
         with `full_output` enabled. Each stratum must contain exactly one
         point.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
 
     Returns
     -------
@@ -107,14 +97,12 @@ def covering_radius_upper_bound(points, strata, dist_matrix_function=None):
         Upper bound of the covering radius for the point set.
 
     """
-    points = np.asarray(points)
+    points = np.atleast_2d(points)
     if len(points) < 1:
         return float("inf")
     assert np.all(points >= 0.0)
     assert np.all(points <= 1.0)
     assert len(points) == len(strata)
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
     cr_ub = 0.0
     for point, stratum in zip(points, strata):
         furthest_corner = []
@@ -124,14 +112,14 @@ def covering_radius_upper_bound(points, strata, dist_matrix_function=None):
             else:
                 furthest_corner.append(stratum[1][i])
         furthest_corner = np.atleast_2d(furthest_corner)
-        dist = dist_matrix_function(np.atleast_2d(point), furthest_corner)[0, 0]
+        dist = distance_matrix(np.atleast_2d(point), furthest_corner, **dist_args)[0, 0]
         if dist > cr_ub:
             cr_ub = dist
     return cr_ub
 
 
 def covering_radius_lower_bound(
-    points, monte_carlo_points, block_size=10000, dist_matrix_function=None
+    points, monte_carlo_points, block_size=10000, dist_args={}
 ):
     """Monte Carlo lower bound for the covering radius.
 
@@ -145,8 +133,7 @@ def covering_radius_lower_bound(
     block_size : int, optional
         The distances are computed in blocks of this size to avoid
         exceeding the memory capacity.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict
 
     Returns
     -------
@@ -159,20 +146,18 @@ def covering_radius_lower_bound(
         return float("inf")
     assert np.all(points >= 0.0)
     assert np.all(points <= 1.0)
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
     i = 0
     cr_lb = 0
     while i < len(monte_carlo_points):
-        dist_matrix = dist_matrix_function(
-            monte_carlo_points[i : (i + block_size)], points
+        D = distance_matrix(
+            monte_carlo_points[i : (i + block_size)], points, **dist_args
         )
         i += block_size
-        cr_lb = max(cr_lb, dist_matrix.min(axis=1).max())
+        cr_lb = max(cr_lb, D.min(axis=1).max())
     return cr_lb
 
 
-def solow_polasky_diversity(points, activity_param=1.0, dist_matrix_function=None):
+def solow_polasky_diversity(points, activity_param=1.0, dist_args={}):
     """Calculate the Solow-Polasky diversity for a set of points.
 
     This diversity indicator was introduced in [Solow1994]_ and is to be
@@ -187,7 +172,7 @@ def solow_polasky_diversity(points, activity_param=1.0, dist_matrix_function=Non
     activity_param : float, optional
         Parameter controlling the strength of correlation. It must hold
         ``0 < activity_param <= 2``. Default is 1.
-    dist_matrix_function : callable, optional
+    dist_args : dict
         A metric distance function. Default is Euclidean distance.
 
     Returns
@@ -203,10 +188,8 @@ def solow_polasky_diversity(points, activity_param=1.0, dist_matrix_function=Non
     """
     if len(points) == 0:
         return 0.0
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
     points = np.asarray(points)
-    dist_matrix = dist_matrix_function(points, points)
+    dist_matrix = distance_matrix(points, points, **dist_args)
     correlation_matrix = np.exp(-activity_param * dist_matrix)
     try:
         # compute pseudoinverse
@@ -216,7 +199,7 @@ def solow_polasky_diversity(points, activity_param=1.0, dist_matrix_function=Non
     return inverse_matrix.sum()
 
 
-def weitzman_diversity(points, dist_matrix_function=None):
+def weitzman_diversity(points, dist_args={}):
     """Calculate the Weitzman diversity for a set of points.
 
     This diversity indicator was introduced in [Weitzman1992]_. It is to be
@@ -229,8 +212,9 @@ def weitzman_diversity(points, dist_matrix_function=None):
     ----------
     points : array_like
         2-D data structure holding the points.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict
+        Optional arguments for the distance calculation.
+        By default L2-distance without wrapping is used.
 
     Returns
     -------
@@ -275,14 +259,12 @@ def weitzman_diversity(points, dist_matrix_function=None):
     num_points = len(points)
     if num_points == 0:
         return 0.0
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
     points = np.asarray(points)
-    dist_matrix = dist_matrix_function(points, points)
+    dist_matrix = distance_matrix(points, points, **dist_args)
     return diversity_recursive(list(range(num_points)), dist_matrix)
 
 
-def sum_of_dists(points, dist_matrix_function=None):
+def sum_of_dists(points, dist_args={}):
     """Calculate the square root of the sum of all pairwise distances.
 
     This indicator is to be maximized.
@@ -295,8 +277,9 @@ def sum_of_dists(points, dist_matrix_function=None):
     ----------
     points : array_like
         2-D data structure holding the points.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict
+        Optional arguments for the distance calculation.
+        By default L2-distance without wrapping is used.
 
     Returns
     -------
@@ -306,17 +289,13 @@ def sum_of_dists(points, dist_matrix_function=None):
     num_points = len(points)
     if num_points == 0:
         return 0.0
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
     points = np.asarray(points)
-    dist_matrix = dist_matrix_function(points, points)
+    dist_matrix = distance_matrix(points, points, **dist_args)
     spread = math.sqrt(dist_matrix.sum() * 0.5)
     return spread
 
 
-def average_inverse_dist(
-    points, exponent=None, max_dist=1.0, dist_matrix_function=None
-):
+def average_inverse_dist(points, exponent=None, max_dist=1.0, dist_args={}):
     """Calculate the average inverse distance.
 
     For each pair of points, the value ``(max_dist / dist) ** exponent`` is
@@ -332,8 +311,9 @@ def average_inverse_dist(
         ``dimension + 1``.
     max_dist : float, optional
         Maximally possible distance or an arbitrary constant.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict
+        Optional arguments for the distance calculation.
+        By default L2-distance without wrapping is used.
 
     Returns
     -------
@@ -347,9 +327,7 @@ def average_inverse_dist(
     num_points, dimension = points.shape
     if exponent is None:
         exponent = dimension + 1
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
-    dist_matrix = dist_matrix_function(points, points)
+    dist_matrix = distance_matrix(points, points, **dist_args)
     sum_of_inv_dists = 0.0
     num_zeros = 0
     for i in range(num_points):
@@ -366,7 +344,7 @@ def average_inverse_dist(
         return sum_of_inv_dists ** (1.0 / exponent) / num_dists
 
 
-def separation_dist(points, dist_matrix_function=None):
+def separation_dist(points, dist_args={}):
     """Calculate the minimal pairwise distance.
 
     This indicator is to be maximized.
@@ -375,8 +353,9 @@ def separation_dist(points, dist_matrix_function=None):
     ----------
     points : array_like
         2-D data structure holding the points.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict
+        Optional arguments for the distance calculation.
+        By default L2-distance without wrapping is used.
 
     Returns
     -------
@@ -387,9 +366,7 @@ def separation_dist(points, dist_matrix_function=None):
     if num_points < 2:
         return 0.0
     points = np.asarray(points)
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
-    dist_matrix = dist_matrix_function(points, points)
+    dist_matrix = distance_matrix(points, points, **dist_args)
     for i in range(num_points):
         dist_matrix[i, i] = np.inf
     min_dist = dist_matrix.min()
@@ -518,7 +495,7 @@ def wmh_index(sep_dist, dist_p, num_points, dim, approx=None, full_output=False)
         return max(approximations)
 
 
-def sum_of_nn_dists(points, dist_matrix_function=None):
+def sum_of_nn_dists(points, dist_args={}):
     """Calculate the sum of nearest-neighbor distances
 
     This indicator is to be maximized.
@@ -527,8 +504,9 @@ def sum_of_nn_dists(points, dist_matrix_function=None):
     ----------
     points : array_like
         2-D data structure holding the points.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict
+        Optional arguments for the distance calculation.
+        By default L2-distance without wrapping is used.
 
     Returns
     -------
@@ -539,9 +517,7 @@ def sum_of_nn_dists(points, dist_matrix_function=None):
     if num_points < 2:
         return 0.0
     points = np.asarray(points)
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
-    dist_matrix = dist_matrix_function(points, points)
+    dist_matrix = distance_matrix(points, points, **dist_args)
     for i in range(num_points):
         dist_matrix[i, i] = np.inf
     nn_dists = dist_matrix.min(axis=0)
@@ -627,7 +603,7 @@ def mean_dist_to_boundary(points):
     points = np.asarray(points)
     assert np.all(points >= 0.0)
     assert np.all(points <= 1.0)
-    dists = calc_dists_to_boundary(points)
+    dists = distance_to_boundary(points)
     return np.mean(dists)
 
 
@@ -637,7 +613,7 @@ def expected_dist_to_boundary(dimension):
     return 0.5 / (1 + dimension)
 
 
-def averaged_hausdorff_dist(points1, points2, exponent=1, dist_matrix_function=None):
+def averaged_hausdorff_dist(points1, points2, exponent=1, dist_args={}):
     """Calculate the averaged Hausdorff distance between two point sets.
 
     As defined in the paper [Schuetze2012]_.
@@ -651,8 +627,9 @@ def averaged_hausdorff_dist(points1, points2, exponent=1, dist_matrix_function=N
     exponent : int, optional
         An exponent to control the penalization of outliers (the higher the
         larger the exponent is).
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict
+        Optional arguments for the distance calculation.
+        By default L2-distance without wrapping is used.
 
     Returns
     -------
@@ -668,16 +645,14 @@ def averaged_hausdorff_dist(points1, points2, exponent=1, dist_matrix_function=N
 
     """
     if math.isinf(exponent):
-        return hausdorff_dist(points1, points2, dist_matrix_function)
+        return hausdorff_dist(points1, points2, dist_args)
     points1 = np.asarray(points1)
     num_points, dimension = points1.shape
     assert num_points > 0 and dimension > 0
     points2 = np.asarray(points2)
     num_points, dimension = points2.shape
     assert num_points > 0 and dimension > 0
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
-    dist_matrix = dist_matrix_function(points1, points2)
+    dist_matrix = distance_matrix(points1, points2, **dist_args)
     min_dists1 = dist_matrix.min(axis=0)
     min_dists2 = dist_matrix.min(axis=1)
     part1 = (min_dists1 ** exponent).sum() / len(min_dists1) ** (1.0 / exponent)
@@ -686,7 +661,7 @@ def averaged_hausdorff_dist(points1, points2, exponent=1, dist_matrix_function=N
     return ahd
 
 
-def hausdorff_dist(points1, points2, dist_matrix_function=None):
+def hausdorff_dist(points1, points2, dist_args={}):
     """Calculate the Hausdorff distance between two point sets.
 
     Parameters
@@ -695,8 +670,9 @@ def hausdorff_dist(points1, points2, dist_matrix_function=None):
         2-D data structure holding the first set.
     points2 : array_like
         2-D data structure holding the second set.
-    dist_matrix_function : callable, optional
-        An arbitrary distance function. Default is Euclidean distance.
+    dist_args : dict
+        Optional arguments for the distance calculation.
+        By default L2-distance without wrapping is used.
 
     Returns
     -------
@@ -709,9 +685,7 @@ def hausdorff_dist(points1, points2, dist_matrix_function=None):
     points2 = np.asarray(points2)
     num_points, dimension = points2.shape
     assert num_points > 0 and dimension > 0
-    if dist_matrix_function is None:
-        dist_matrix_function = calc_euclidean_dist_matrix
-    dist_matrix = dist_matrix_function(points1, points2)
+    dist_matrix = distance_matrix(points1, points2, **dist_args)
     min_dists1 = dist_matrix.min(axis=0)
     min_dists2 = dist_matrix.min(axis=1)
     hd_dist = max(min_dists1.max(), min_dists2.max())
