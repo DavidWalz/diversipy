@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 """
 This module contains algorithms for the task of subset selection: suppose
 you have a set of points in :math:`\\mathbb{R}^n` and want to select a sample

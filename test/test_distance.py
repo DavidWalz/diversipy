@@ -24,10 +24,10 @@ def test_distance_matrix():
     # test L2 distance
     np.testing.assert_almost_equal(
         diversipy.distance.distance_matrix(points1, points2, norm=2),
-        [[0.1], [(0.1**2 + 0.7**2)**0.5], [(0.4**2 + 0.1**2)**0.5]],
+        [[0.1], [(0.1 ** 2 + 0.7 ** 2) ** 0.5], [(0.4 ** 2 + 0.1 ** 2) ** 0.5]],
     )
     # test toridal L1 distance
     np.testing.assert_almost_equal(
         diversipy.distance.distance_matrix(points1, points2, norm=1, max_dist=[1, 1]),
-        [[0.1], [0.1 + (1 - 0.7)], [0.4 + 0.1]]
+        [[0.1], [0.1 + (1 - 0.7)], [0.4 + 0.1]],
     )

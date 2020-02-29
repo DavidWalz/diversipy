@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 """
 This module contains several functions to measure diversity and a few
 related concepts. The diversity indicators all have different advantages and

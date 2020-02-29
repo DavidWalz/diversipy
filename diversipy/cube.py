@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 """
 This module provides functions for super-uniform sampling of the unit
 hypercube. 'Super-uniform' in this context means that the obtained point

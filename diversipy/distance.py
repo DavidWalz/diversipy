@@ -39,7 +39,7 @@ def distance_to_boundary(points, cuboid=None):
 
 
 def distance_matrix(points1, points2, norm=2, max_dist=None):
-    """Calculate the distance of each point in two sets of points.
+    """Calculate the distance between each combination of points in two sets.
 
     Parameters
     ----------

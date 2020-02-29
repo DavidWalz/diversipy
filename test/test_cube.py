@@ -34,9 +34,12 @@ def test_sukharev_grid():
         diversipy.cube.sukharev_grid(num_points=4, dimension=2),
         [[0.25, 0.25], [0.25, 0.75], [0.75, 0.25], [0.75, 0.75]],
     )
-    diversipy.cube.sukharev_grid(num_points=125, dimension=3)  # this should work
+
+    diversipy.cube.sukharev_grid(num_points=125, dimension=3)  # ok
+
+    # wrong number of points
     with pytest.raises(AssertionError):
-        diversipy.cube.sukharev_grid(num_points=100, dimension=3)  # wrong number of points
+        diversipy.cube.sukharev_grid(num_points=100, dimension=3)
 
 
 def test_random_uniform():
