@@ -1,9 +1,11 @@
+"""This module provides functions to sample from the unit simplex.
+"""
 import numpy as np
 from scipy.special import comb
 
 
 def sample(dimension, n_points=1):
-    """Draw samples from the unit simplex.
+    """Draw random samples from the unit simplex in R^d.
 
     Parameters
     ----------
@@ -21,8 +23,8 @@ def sample(dimension, n_points=1):
     return (s.T / s.sum(axis=1)).T
 
 
-def grid(dimension, levels):
-    """Construct a regular grid on the unit simplex.
+def grid(dimension, levels=2):
+    """Construct a regular grid on the unit simplex in R^d.
 
     Parameters
     ----------
