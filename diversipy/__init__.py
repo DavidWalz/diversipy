@@ -7,6 +7,7 @@ For further documentation see the submodules.
 
 from . import cube
 from . import simplex
+from . import polytope
 from . import subset
 from . import indicator
 from . import distance
