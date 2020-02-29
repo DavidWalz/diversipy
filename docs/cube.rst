@@ -14,34 +14,28 @@ Stratified sampling
 
 .. autofunction:: stratify_conventional
 .. autofunction:: stratify_generalized
-.. autofunction:: stratified_sampling
-.. autofunction:: reconstruct_strata_from_points
+.. autofunction:: sample_from_strata
+.. autofunction:: strata_from_points
 
 
-Latin hypercube designs
+Designs
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: lhd_matrix
-.. autofunction:: improved_lhd_matrix
-.. autofunction:: has_lhd_property
-
-
-Lattices
-~~~~~~~~
-
-.. autofunction:: rank1_design_matrix
-.. autofunction:: korobov_design_matrix
+.. autofunction:: latin_design
+.. autofunction:: improved_latin_design
+.. autofunction:: is_latin
+.. autofunction:: rank1_design
+.. autofunction:: korobov_design
 
 
 Other
 ~~~~~
 
-.. autofunction:: maximin_reconstruction
-.. autofunction:: random_k_means
-.. autofunction:: halton
-.. autofunction:: random_uniform
+.. autofunction:: sample_halton
+.. autofunction:: sample_maximin
+.. autofunction:: sample_k_means
 .. autofunction:: grid
-.. autofunction:: sukharev_grid
+
 
 
 Helper functions

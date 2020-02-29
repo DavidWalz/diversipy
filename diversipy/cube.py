@@ -117,12 +117,12 @@ def sukharev_grid(num_points, dimension):
     return points
 
 
-def random_uniform(num_points, dimension):
+def sample_uniform(num_points, dimension):
     """Syntactic sugar for :func:`numpy.random.rand`."""
     return np.random.rand(num_points, dimension)
 
 
-def random_halton(num_points, dimension, skip=0):
+def sample_halton(num_points, dimension, skip=0):
     """Generate a Halton point set.
 
     Quasirandom sequence using the default initialization with the first
@@ -230,7 +230,7 @@ def random_halton(num_points, dimension, skip=0):
     return np.array(points)
 
 
-def random_k_means(
+def sample_k_means(
     num_points,
     dimension,
     num_steps=None,
@@ -279,7 +279,7 @@ def random_k_means(
     if num_steps is None:
         num_steps = 100 * num_points
     if initial_points is None:
-        cluster_centers = random_from_strata(
+        cluster_centers = sample_from_strata(
             stratify_generalized(num_points, dimension)
         )
     elif len(initial_points) == num_points:
@@ -293,22 +293,22 @@ def random_k_means(
     for _ in range(num_steps):
         if callback is not None:
             callback(cluster_centers)
-        random_point = np.random.rand(1, dimension)
-        distances = distance_matrix(random_point, cluster_centers, **dist_args)
-        random_point = random_point.ravel()
+        sample_point = np.random.rand(1, dimension)
+        distances = distance_matrix(sample_point, cluster_centers, **dist_args)
+        sample_point = sample_point.ravel()
         nearest_index = int(np.argmin(distances, axis=1))
         nearest_cluster_center = cluster_centers[nearest_index, :].ravel()
         if dist_args.get("max_dist", None) is not None:
-            one_dim_dists = np.abs(nearest_cluster_center - random_point)
-            virtual_point = np.array(random_point)
+            one_dim_dists = np.abs(nearest_cluster_center - sample_point)
+            virtual_point = np.array(sample_point)
             for j, dist in enumerate(one_dim_dists):
                 if dist > 0.5:
                     if nearest_cluster_center[j] < 0.5:
-                        virtual_point[j] = 1.0 - random_point[j]
+                        virtual_point[j] = 1.0 - sample_point[j]
                     else:
-                        virtual_point[j] = 1.0 + random_point[j]
+                        virtual_point[j] = 1.0 + sample_point[j]
         else:
-            virtual_point = random_point
+            virtual_point = sample_point
         weight = weights[nearest_index]
         cluster_centers[nearest_index, :] = (
             weight * nearest_cluster_center + virtual_point
@@ -320,7 +320,7 @@ def random_k_means(
     return cluster_centers
 
 
-def random_maximin(
+def sample_maximin(
     num_points,
     dimension,
     num_steps=None,
@@ -378,7 +378,7 @@ def random_maximin(
     if num_steps is None:
         num_steps = 100 * num_points
     if initial_points is None:
-        points = random_from_strata(stratify_generalized(num_points, dimension))
+        points = sample_from_strata(stratify_generalized(num_points, dimension))
     elif len(initial_points) == num_points:
         points = np.array(initial_points)
         assert np.all(points >= 0.0)
@@ -610,7 +610,7 @@ def stratify_generalized(
     return final_strata
 
 
-def random_from_strata(
+def sample_from_strata(
     strata, bates_param=1, latin="none", matching_init="approx", full_output=False
 ):
     """Stratified sampling with given strata.
