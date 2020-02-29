@@ -1,9 +1,9 @@
 
-:mod:`cube` --- Uniform sampling of the unit hypercube
+:mod:`cube` --- Uniform sampling from the unit hypercube
 ==============================================================
 
 .. automodule:: diversipy.cube
-    :synopsis: Uniform sampling of the unit hypercube.
+    :synopsis: Uniform sampling from the unit hypercube.
 
 
 Sampling algorithms

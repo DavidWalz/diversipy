@@ -42,23 +42,18 @@ def test_sukharev_grid():
         diversipy.cube.sukharev_grid(num_points=100, dimension=3)
 
 
-def test_random_uniform():
-    X = diversipy.cube.random_uniform(num_points=100, dimension=20)
+def test_sample_halton():
+    X = diversipy.cube.sample_halton(num_points=100, dimension=20)
     assert (X >= 0).all() and (X <= 1).all() and X.shape == (100, 20)
 
 
-def test_random_halton():
-    X = diversipy.cube.random_halton(num_points=100, dimension=20)
+def test_sample_k_means():
+    X = diversipy.cube.sample_k_means(num_points=100, dimension=20)
     assert (X >= 0).all() and (X <= 1).all() and X.shape == (100, 20)
 
 
-def test_random_k_means():
-    X = diversipy.cube.random_k_means(num_points=100, dimension=20)
-    assert (X >= 0).all() and (X <= 1).all() and X.shape == (100, 20)
-
-
-def test_random_maximin():
-    X = diversipy.cube.random_maximin(num_points=100, dimension=5)
+def test_sample_maximin():
+    X = diversipy.cube.sample_maximin(num_points=100, dimension=5)
     assert (X >= 0).all() and (X <= 1).all() and X.shape == (100, 5)
 
 
@@ -70,7 +65,7 @@ def test_stratify_generalized():
     pass
 
 
-def test_random_from_strata():
+def test_sample_from_strata():
     pass
 
 

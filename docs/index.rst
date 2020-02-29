@@ -9,6 +9,8 @@ Contents:
    :maxdepth: 2
 
    cube.rst
+   simplex.rst
+   polytope.rst
    subset.rst
    indicator.rst
    distance.rst

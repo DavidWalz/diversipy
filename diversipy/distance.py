@@ -1,6 +1,5 @@
 """
-This module provides distance measures. For more exotic distance functions have a look
-at :mod:`scipy.spatial.distance`.
+This module provides distance helper functions.
 """
 
 import numpy as np

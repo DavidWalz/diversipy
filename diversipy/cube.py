@@ -1,9 +1,7 @@
 """
-This module provides functions for super-uniform sampling of the unit
-hypercube. 'Super-uniform' in this context means that the obtained point
-sample is more uniform than a random uniform sample, which is a desirable
-property in many applications. After creation, the samples can be
-transformed from the unit hypercube to arbitrary cuboids.
+This module provides functions for super-uniform sampling from the unit hypercube.
+'Super-uniform' in this context means that the obtained point sample is more uniform
+than a random uniform sample.
 """
 import sys
 import math
