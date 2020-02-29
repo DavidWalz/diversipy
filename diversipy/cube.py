@@ -1,10 +1,6 @@
 """
-This module provides functions for super-uniform sampling from the unit hypercube.
-'Super-uniform' in this context means that the obtained point sample is more uniform
-than a random uniform sample.
+Functions for (super-uniform) sampling from the unit hypercube.
 """
-import sys
-import math
 import random
 import itertools
 import numpy as np
@@ -156,7 +152,7 @@ def sample_halton(num_points, dimension, skip=0):
         i = index
         while i > 0:
             result += f * (i % base)
-            i = math.floor(i / base)
+            i = np.floor(i / base)
             f /= base
         return result
 
@@ -753,7 +749,7 @@ def sample_from_strata(
         for dim_index in range(dimension):
             for j, stratum in enumerate(strata):
                 low, high = stratum[0][dim_index], stratum[1][dim_index]
-                if math.isinf(bates_param):
+                if np.isinf(bates_param):
                     points[j][dim_index] = (low + high) * 0.5
                 elif bates_param == 1:
                     points[j][dim_index] = rand_uni(low, high)
@@ -782,7 +778,7 @@ def sample_from_strata(
                     stratum = strata[strat_idx]
                     low, high = stratum[0][dim_index], stratum[1][dim_index]
                     low_bin = int(low / bin_size)
-                    high_bin = int(math.ceil(high / bin_size))
+                    high_bin = int(np.ceil(high / bin_size))
                     avail_bins = np.arange(low_bin, high_bin)
                     if matching_init == "approx" and bin_idx in avail_bins:
                         matching[bin_idx] = strat_idx
@@ -805,7 +801,7 @@ def sample_from_strata(
                     error_indices.add(strat_idx)
                     # revert to uniform sampling of the stratum in this dim
                     low, high = stratum[0][dim_index], stratum[1][dim_index]
-                if math.isinf(bates_param):
+                if np.isinf(bates_param):
                     points[strat_idx][dim_index] = (low + high) * 0.5
                 elif bates_param == 1:
                     points[strat_idx][dim_index] = rand_uni(low, high)
@@ -877,7 +873,7 @@ def strata_from_points(points, cuboid=None):
         if len(less_indices) == 0:
             min_index = np.argmin(current_points[greater_equal_indices, split_dim])
             prelim_split_pos = (
-                current_points[min_index, split_dim] + sys.float_info.epsilon
+                current_points[min_index, split_dim] + np.finfo(float).eps
             )
             split_bit_mask = current_points[:, split_dim] < prelim_split_pos
             less_indices = np.where(split_bit_mask)[0]
@@ -1076,7 +1072,7 @@ def improved_latin_design(
         # create a set of num_candidates random points obeying the LHD property
         available_bins_array = np.array(available_bins).T
         num_available = float(num_points - i)
-        duplication_factor = int(math.ceil(num_candidates / num_available))
+        duplication_factor = int(np.ceil(num_candidates / num_available))
         candidates = np.vstack([available_bins_array] * duplication_factor)
         for dim in dimensions:
             candidates[:, dim] = permutation(candidates[:, dim])
@@ -1086,7 +1082,7 @@ def improved_latin_design(
         )
         min_dists = distances.min(axis=0)
         # select best point according to distance criterion
-        if not math.isinf(target_value):
+        if not np.isinf(target_value):
             selected_index = np.argmin(np.abs(min_dists - target_value))
         else:
             selected_index = np.argmax(min_dists)
