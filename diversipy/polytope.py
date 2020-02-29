@@ -1,11 +1,11 @@
-"""This module provides functions to uniformly sample in the presence of linear inequality
-constraints, :math:`Ax <= b`. This corresponds to sampling from a convex polytope.
+"""
+Functions to uniformly sample in the presence of linear inequality constraints,
+:math:`Ax <= b`, which corresponds to sampling from a convex polytope.
 Additional linear equality constraints :math:`Ax = b` are also supported.
 """
 import numpy as np
 import scipy.linalg
 import scipy.optimize
-from tqdm import tqdm
 
 
 def check_Ab(A, b):
@@ -57,7 +57,7 @@ def constraints_from_bounds(lower, upper):
     ----------
     lower : array-like
         lower bound of each dimension
-    upper : [type]
+    upper : array-like
         upper bound of each dimension
 
     Returns
@@ -155,7 +155,7 @@ def sample(A, b, n_samples=100, thin=1, A_eq=None, b_eq=None):
     sampler = hitandrun(At, bt, x0)
 
     X = np.empty((n_samples, At.shape[1]))
-    for i in tqdm(range(n_samples)):
+    for i in range(n_samples):
         for _ in range(thin - 1):
             next(sampler)
         X[i] = next(sampler)
