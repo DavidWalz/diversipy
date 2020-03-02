@@ -1,5 +1,7 @@
 # diversipy
-[![Build Status](https://travis-ci.org/DavidWalz/diversipy.svg?branch=master)](https://travis-ci.org/DavidWalz/diversipy) [![Documentation Status](https://readthedocs.org/projects/diversipy/badge/?version=latest)](https://diversipy.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.org/DavidWalz/diversipy.svg?branch=master)](https://travis-ci.org/DavidWalz/diversipy)
+[![Documentation Status](https://readthedocs.org/projects/diversipy/badge/?version=latest)](https://diversipy.readthedocs.io/en/latest/?badge=latest)
+[![Maintainability](https://api.codeclimate.com/v1/badges/0aa8557ca602d3dff313/maintainability)](https://codeclimate.com/github/DavidWalz/diversipy/maintainability)
 
 *This is a fork/rewrite of [diversipy](https://pypi.org/project/diversipy/).*
 
