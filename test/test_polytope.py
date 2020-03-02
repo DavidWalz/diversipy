@@ -46,17 +46,21 @@ def test_hitandrun():
 
 def test_sample():
     # Sampling from unit-simplex in R^3
-    # 0 <= xi <= 1
-    A1, b1 = polytope.constraints_from_bounds(lower=[0, 0, 0], upper=[1, 1, 1])
-    # sum xi = 1
-    A2 = np.array([[1, 1, 1]])
-    b2 = np.array([1])
-    X = polytope.sample(A=A1, b=b1, A_eq=A2, b_eq=b2, n_points=1000)
-    assert np.all(X @ A1.T <= b1)
-    assert np.allclose(X @ A2.T, b2)
+    X = polytope.sample(
+        n_points=1000,
+        lower=[0, 0, 0],
+        upper=[1, 1, 1],
+        A2=np.array([[1, 1, 1]]),
+        b2=np.array([1]),
+    )
+    assert np.allclose(X.sum(axis=1), 1)
+    assert X.min() >= 0
+    assert X.max() <= 1
 
-    # Sampling from R^2
-    A = np.array([[-1, 0], [0, -1], [1, 0], [0, 1], [1 / 2, 1], [2 / 3, -1]])
-    b = np.array([-0.1, -0.2, 0.7, 0.9, 1, -0.2])
-    X = polytope.sample(A=A, b=b, n_points=1000)
-    assert np.all(X @ A.T <= b)
+    # Sampling from [0, 1]^2 subject to
+    # x1 / 2 + x2 <= 1
+    # 2/3 x1 - x2 <= -0.2
+    A1 = np.array([[1 / 2, 1], [2 / 3, -1]])
+    b1 = np.array([1, -0.2])
+    X = polytope.sample(n_points=1000, lower=[0, 0], upper=[1, 1], A1=A1, b1=b1)
+    assert np.all(X @ A1.T <= b1)

@@ -18,6 +18,7 @@ pip install git+https://github.com/DavidWalz/diversipy.git
 ```
 
 #### Example
+Latin hypercube and diverse subset selection:
 ```python
 from diversipy import cube, subset, indicator
 X = cube.latin_design(50, 2)) # create latin hypercube design
@@ -26,14 +27,14 @@ subset = subset.psa_select(X, 10) # select subset, for whatever reason
 indicator.unanchored_L2_discrepancy(subset) # calculate discrepancy
 ```
 
-Sample a number of points (x1, x2) subject to 
-0.1 <= x1 <= 0.7  
-0.2 <= x2 <= 0.9  
-x1 / 2 + x2 <= 1  
-2 / 3 x1 - x2 <= -0.2
+Sample a number of points (x1, x2) subject to some inequality constraints:
 ```python
 from diversipy import polytope
-A = np.array([[-1, 0], [0, -1], [1, 0], [0, 1], [1 / 2, 1], [2 / 3, -1]])
-b = np.array([-0.1, -0.2, 0.7, 0.9, 1, -0.2])
-X = polytope.sample(A=A, b=b, n_samples=1000)
+X = polytope.sample(
+    n_points=1000,
+    lower=[-0.1, -0.2],
+    upper=[0.7, 0.9],
+    A1=np.array([[1 / 2, 1], [2 / 3, -1]]),
+    b1=np.array([1, -0.2])
+)
 ```

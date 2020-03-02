@@ -145,7 +145,7 @@ def hitandrun(A, b, x0):
         # distances to each face from the current point in the sampled direction
         D = (b - x @ A.T) / (direction @ A.T)
 
-        # distance to the closest face in and opposite to
+        # distance to the closest face in and opposite to direction
         lo = np.max(D[D < 0])
         hi = np.min(D[D > 0])
 
@@ -154,41 +154,55 @@ def hitandrun(A, b, x0):
         yield x
 
 
-def sample(A, b, n_points=100, thin=1, A_eq=None, b_eq=None):
-    """Sample a number of points from a convex polytope Ax <= b, with optional
-    additional equality constraints A_eq x = b_eq using the Hit & Run algorithm.
+def sample(n_points, lower, upper, A1=None, b1=None, A2=None, b2=None, thin=1):
+    """Sample a number of points from a convex polytope A1 x <= b1 using the Hit & Run
+    algorithm.
+
+    Lower and upper bounds need to be provided to ensure that the polytope is bounded.
+    Equality constraints A2 x = b2 may be optionally provided.
 
     Parameters
     ----------
-    A : 2d-array of shape (n_constraints, dimension)
-        Left-hand-side of Ax <= b.
-    b : 1d-array of shape (n_constraints)
-        Right-hand-side of Ax <= b.
-    n_points : int, optional
-        Number of samples to generate, by default 100
+    n_points : int
+        Number of samples to generate.
+    lower: 1d-array of shape (dimension)
+        Lower bound in each dimension. If not wanted set to -np.inf.
+    upper: 1d-array of shape (dimension)
+        Upper bound in each dimension. If not wanted set to np.inf.
+    A1 : 2d-array of shape (n_constraints, dimension)
+        Left-hand-side of A1 x <= b1.
+    b1 : 1d-array of shape (n_constraints)
+        Right-hand-side of A1 x <= b1.
+    A2 : 2d-array of shape (n_constraints, dimensions), optional
+        Left-hand-side of A2 x = b2.
+    b2 : 1d-array of shape (n_constraints), optional
+        Right-hand-side of A2 x = b2.
     thin : int, optional
         The thinning factor of the generated samples. A thinning of 10 means a sample
         is taken every 10 steps.
-    A_eq : 2d-array of shape (n_constraints, dimensions), optional
-        Left-hand-side of A_eq x = b_eq.
-    b_eq : 1d-array of shape (n_constraints), optional
-        Right-hand-side of A_eq x = b_eq.
 
     Returns
     -------
     2d-array of shape (n_points)
-        Points sampled from the polytope
+        Points sampled from the polytope.
     """
-    if (A_eq is not None) and (b_eq is not None):
-        check_Ab(A_eq, b_eq)
-        N, xp = solve_equality(A_eq, b_eq)
+    if (A1 is not None) and (b1 is not None):
+        A, b = constraints_from_bounds(lower, upper)
+        A1 = np.r_[A, A1]
+        b1 = np.r_[b, b1]
     else:
-        N = np.eye(A.shape[1])
-        xp = np.zeros(A.shape[1])
+        A1, b1 = constraints_from_bounds(lower, upper)
+
+    if (A2 is not None) and (b2 is not None):
+        check_Ab(A2, b2)
+        N, xp = solve_equality(A2, b2)
+    else:
+        N = np.eye(A1.shape[1])
+        xp = np.zeros(A1.shape[1])
 
     # project to the subspace of solutions of the equality constraints
-    At = A @ N
-    bt = b - A @ xp
+    At = A1 @ N
+    bt = b1 - A1 @ xp
 
     x0 = chebyshev_center(At, bt)
     sampler = hitandrun(At, bt, x0)
