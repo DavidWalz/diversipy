@@ -38,3 +38,4 @@ X = polytope.sample(
     b1=np.array([1, -0.2])
 )
 ```
+![](notebooks/polytope.png)
