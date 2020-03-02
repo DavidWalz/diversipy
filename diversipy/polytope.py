@@ -1,7 +1,23 @@
 """
-Functions to uniformly sample in the presence of linear inequality constraints,
-:math:`Ax <= b`, which corresponds to sampling from a convex polytope.
-Additional linear equality constraints :math:`Ax = b` are also supported.
+This module provides functions to uniformly sample points subject to a system of linear
+inequality constraints, :math:`Ax <= b` (convex polytope), and linear equality
+constraints, :math:`Ax = b` (affine projection).
+
+A comparison of MCMC algorithms to generate uniform samples over a convex polytope is
+given in [Chen2018]_. Here, we use the Hit & Run algorithm described in [Smith1984]_.
+
+The R-package `hitandrun`_ provides similar functionality to this module.
+
+References
+----------
+.. [Chen2018] Chen Y., Dwivedi, R., Wainwright, M., Yu B. (2018) Fast MCMC Sampling
+    Algorithms on Polytopes. JMLR, 19(55):1−86
+    https://arxiv.org/abs/1710.08165
+.. [Smith1984] Smith, R. (1984). Efficient Monte Carlo Procedures for Generating
+    Points Uniformly Distributed Over Bounded Regions. Operations Research,
+    32(6), 1296-1308.
+    www.jstor.org/stable/170949
+.. _`hitandrun`: https://cran.r-project.org/web/packages/hitandrun/index.html
 """
 import numpy as np
 import scipy.linalg
@@ -13,10 +29,11 @@ def check_Ab(A, b):
 
     Parameters
     ----------
-    A : ndarray of shape (n_constraints, n_dimensions)
+    A : 2d-array of shape (n_constraints, dimension)
         Left-hand-side of Ax <= b.
-    b : ndarray of shape (n_constraints)
-        Right-hand-side Ax <= b.
+    b : 1d-array of shape (n_constraints)
+        Right-hand-side of Ax <= b.
+
     """
     assert A.ndim == 2
     assert b.ndim == 1
@@ -24,18 +41,18 @@ def check_Ab(A, b):
 
 
 def chebyshev_center(A, b):
-    """Find the center of the polytope.
+    """Find the center of the polytope Ax <= b.
 
     Parameters
     ----------
-    A : ndarray of shape (n_constraints, n_dimensions)
+    A : 2d-array of shape (n_constraints, dimension)
         Left-hand-side of Ax <= b.
-    b : ndarray of shape (n_constraints)
-        Right-hand-side Ax <= b.
+    b : 1d-array of shape (n_constraints)
+        Right-hand-side of Ax <= b.
 
     Returns
     -------
-    ndarray of shape (n_dimensions)
+    1d-array of shape (dimension)
         Chebyshev center of the polytope
     """
     res = scipy.optimize.linprog(
@@ -56,15 +73,16 @@ def constraints_from_bounds(lower, upper):
     Parameters
     ----------
     lower : array-like
-        lower bound of each dimension
+        lower bound in each dimension
     upper : array-like
-        upper bound of each dimension
+        upper bound in each dimension
 
     Returns
     -------
-    (A, b)
-        A: ndarray of shape (2*n_dimensions, n_dimensions)
-        b: ndarray of shape (2*n_dimensions)
+    A: 2d-array of shape (2 * dimension, dimension)
+        Left-hand-side of Ax <= b.
+    b: 1d-array of shape (2 * dimension)
+        Right-hand-side of Ax <= b.
     """
     n = len(lower)
     A = np.row_stack([-np.eye(n), np.eye(n)])
@@ -73,19 +91,23 @@ def constraints_from_bounds(lower, upper):
 
 
 def solve_equality(A, b):
-    """Compute a basis for the nullspace of A, and a particular solution to A x = b.
+    """Compute a basis of the nullspace of A, and a particular solution to Ax = b.
+    This allows to to construct arbitrary solutions as the sum of any vector in the
+    nullspace, plus the particular solution.
 
     Parameters
     ----------
-    A : ndarray of shape (n_constraints, n_dimensions)
+    A : 2d-array of shape (n_constraints, dimension)
         Left-hand-side of Ax <= b.
-    b : ndarray of shape (n_constraints)
-        Right-hand-side Ax <= b.
+    b : 1d-array of shape (n_constraints)
+        Right-hand-side of Ax <= b.
 
     Returns
     -------
-    (N, xp)
-        [description]
+    N: 2d-array of shape (dimension, dimension)
+        Orthonormal basis of the nullspace of A.
+    xp: 1d-array of shape (dimension)
+        Particular solution to Ax = b.
     """
     N = scipy.linalg.null_space(A)
     xp = np.linalg.pinv(A) @ b
@@ -93,7 +115,23 @@ def solve_equality(A, b):
 
 
 def hitandrun(A, b, x0):
-    """Generator for the hit & run MCMC method sample from convex polytopes."""
+    """Generator for uniform sampling from the convex polytope Ax <= b using the
+    Hit & Run algorithm described in [Smith1984].
+
+    Parameters
+    ----------
+    A : 2d-array of shape (n_constraints, dimension)
+        Left-hand-side of Ax <= b.
+    b : 1d-array of shape (n_constraints)
+        Right-hand-side of Ax <= b.
+    x0 : 1d-array of shape (dimension)
+        Initial point that satisfies A x0 <= b.
+
+    Yields
+    -------
+    1d-array of shape (dimension)
+        Point sampled from the polytope.
+    """
     check_Ab(A, b)
     assert A.shape[1] == len(x0)
 
@@ -116,29 +154,30 @@ def hitandrun(A, b, x0):
         yield x
 
 
-def sample(A, b, n_samples=100, thin=1, A_eq=None, b_eq=None):
-    """Sample a number of points from a convex polytope.
+def sample(A, b, n_points=100, thin=1, A_eq=None, b_eq=None):
+    """Sample a number of points from a convex polytope Ax <= b, with optional
+    additional equality constraints A_eq x = b_eq using the Hit & Run algorithm.
 
     Parameters
     ----------
-    A : ndarray of shape (n_constraints, n_dimensions)
+    A : 2d-array of shape (n_constraints, dimension)
         Left-hand-side of Ax <= b.
-    b : ndarray of shape (n_constraints)
-        Right-hand-side Ax <= b.
-    n_samples : int, optional
+    b : 1d-array of shape (n_constraints)
+        Right-hand-side of Ax <= b.
+    n_points : int, optional
         Number of samples to generate, by default 100
     thin : int, optional
-        The thinning factor of the generated samples. A thinning of 10 means a samples
+        The thinning factor of the generated samples. A thinning of 10 means a sample
         is taken every 10 steps.
-    A_eq : ndarray of shape (n_constraints, n_dimensions)
+    A_eq : 2d-array of shape (n_constraints, dimensions), optional
         Left-hand-side of A_eq x = b_eq.
-    b_eq : ndarray of shape (n_constraints)
-        Right-hand-side A_eq x = b_eq.
+    b_eq : 1d-array of shape (n_constraints), optional
+        Right-hand-side of A_eq x = b_eq.
 
     Returns
     -------
-    [type]
-        [description]
+    2d-array of shape (n_points)
+        Points sampled from the polytope
     """
     if (A_eq is not None) and (b_eq is not None):
         check_Ab(A_eq, b_eq)
@@ -154,8 +193,8 @@ def sample(A, b, n_samples=100, thin=1, A_eq=None, b_eq=None):
     x0 = chebyshev_center(At, bt)
     sampler = hitandrun(At, bt, x0)
 
-    X = np.empty((n_samples, At.shape[1]))
-    for i in range(n_samples):
+    X = np.empty((n_points, At.shape[1]))
+    for i in range(n_points):
         for _ in range(thin - 1):
             next(sampler)
         X[i] = next(sampler)

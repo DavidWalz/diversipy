@@ -51,12 +51,12 @@ def test_sample():
     # sum xi = 1
     A2 = np.array([[1, 1, 1]])
     b2 = np.array([1])
-    X = polytope.sample(A=A1, b=b1, A_eq=A2, b_eq=b2, n_samples=1000)
+    X = polytope.sample(A=A1, b=b1, A_eq=A2, b_eq=b2, n_points=1000)
     assert np.all(X @ A1.T <= b1)
     assert np.allclose(X @ A2.T, b2)
 
     # Sampling from R^2
     A = np.array([[-1, 0], [0, -1], [1, 0], [0, 1], [1 / 2, 1], [2 / 3, -1]])
     b = np.array([-0.1, -0.2, 0.7, 0.9, 1, -0.2])
-    X = polytope.sample(A=A, b=b, n_samples=1000)
+    X = polytope.sample(A=A, b=b, n_points=1000)
     assert np.all(X @ A.T <= b)
