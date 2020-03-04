@@ -7,7 +7,7 @@ def test_psa_partition():
 
 
 def test_psa_select():
-    X = diversipy.cube.grid(num_points=125, dimension=3)
+    X = diversipy.cube.grid(n_levels=5, dimension=3)
     subset = diversipy.subset.psa_select(points=X, num_selected_points=3)
     np.testing.assert_almost_equal(
         subset, [[0.0, 0.5, 0.5], [0.75, 0.0, 0.5], [0.75, 0.75, 0.5]],
@@ -15,7 +15,7 @@ def test_psa_select():
 
 
 def test_select_greedy_maximin():
-    X = diversipy.cube.grid(num_points=125, dimension=3)
+    X = diversipy.cube.grid(n_levels=5, dimension=3)
     subset = diversipy.subset.select_greedy_maximin(
         points=X, num_selected_points=3, existing_points=X[0]
     )
@@ -25,7 +25,7 @@ def test_select_greedy_maximin():
 
 
 def test_select_greedy_maxisum():
-    X = diversipy.cube.grid(num_points=125, dimension=3)
+    X = diversipy.cube.grid(n_levels=5, dimension=3)
     subset = diversipy.subset.select_greedy_maxisum(
         points=X, num_selected_points=3, existing_points=X[0]
     )
@@ -35,7 +35,7 @@ def test_select_greedy_maxisum():
 
 
 def test_select_greedy_energy():
-    X = diversipy.cube.grid(num_points=125, dimension=3)
+    X = diversipy.cube.grid(n_levels=5, dimension=3)
     subset = diversipy.subset.select_greedy_energy(
         points=X, num_selected_points=3, existing_points=X[0]
     )
