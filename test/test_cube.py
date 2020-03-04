@@ -49,11 +49,11 @@ def test_strata_from_points():
 
 
 def test_rank1_design_matrix():
-    pass
+    D = diversipy.cube.rank1_design(10, dimension=4)
+    assert np.all(D >= 0) and np.all(D < 10)
 
-
-def test_korobov_design_matrix():
-    pass
+    D = diversipy.cube.rank1_design(100, dimension=4, g=[4, 5, 7, 11])
+    assert np.all(D >= 0) and np.all(D < 100)
 
 
 def test_latin_design():

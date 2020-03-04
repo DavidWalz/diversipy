@@ -770,7 +770,7 @@ def strata_from_points(points, cuboid=None):
     return final_strata
 
 
-def rank1_design(num_points, dimension, generator_vector=None):
+def rank1_design(num_points, dimension, g=None):
     """Design matrix for a rank-1 lattice.
 
     This algorithm is deterministic and has linear run time.
@@ -781,8 +781,8 @@ def rank1_design(num_points, dimension, generator_vector=None):
         The number of points to generate.
     dimension : int
         The dimension of the space.
-    generator_vector : array_like, optional
-        An integer vector of length `dimension`.
+    g : array_like, optional
+        Generator vector of length `dimension`.
 
     Returns
     -------
@@ -790,46 +790,14 @@ def rank1_design(num_points, dimension, generator_vector=None):
         Matrix with integers corresponding to the bins of a virtual grid.
 
     """
-    if generator_vector is None:
-        generator_vector = np.random.randint(2, num_points, dimension)
-    assert len(generator_vector) == dimension
-    generator_vector = np.array(generator_vector) % num_points
-    points = np.array(
-        [i * generator_vector % num_points for i in range(num_points)], dtype="i"
-    )
-    return points
-
-
-def korobov_design(num_points, dimension, generator_param=None):
-    """Design matrix for a Korobov lattice.
-
-    This is a special case of the rank-1 lattice. The design has the LHD
-    property if ``gcd(num_points, generator_param) == 1``. The algorithm is
-    deterministic and has linear run time.
-
-    Parameters
-    ----------
-    num_points : int
-        The number of points to generate.
-    dimension : int
-        The dimension of the space.
-    generator_param : int, optional
-        An integer used for constructing a generator vector.
-
-    Returns
-    -------
-    design : (`num_points`, `dimension`) numpy array
-        Matrix with integers corresponding to the bins of a virtual grid.
-
-    """
-    if generator_param is None:
-        generator_param = random.randrange(2, num_points)
-    generator_param %= num_points
-    assert generator_param > 1
-    generator_vector = [1] * dimension
-    for i in range(1, dimension):
-        generator_vector[i] = (generator_param * generator_vector[i - 1]) % num_points
-    return rank1_design(num_points, dimension, generator_vector)
+    if g is not None:
+        g = np.array(g)
+        assert g.shape == (dimension, )
+        assert np.all(g > 1) and np.all(g < num_points)
+    else:
+        g = np.random.choice(np.arange(2, num_points), dimension, replace=False)
+    i = np.arange(num_points) + 1
+    return np.outer(i, g) % num_points
 
 
 def latin_design(num_points, dimension):
@@ -862,9 +830,8 @@ def latin_design(num_points, dimension):
 
     """
     design = np.zeros((num_points, dimension), dtype="i")
-    permutation = np.random.permutation
     for i in range(dimension):
-        design[:, i] = permutation(np.arange(0, num_points))
+        design[:, i] = np.random.permutation(np.arange(0, num_points))
     return design
 
 
