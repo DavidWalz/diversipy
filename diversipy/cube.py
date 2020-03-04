@@ -116,11 +116,11 @@ def sample_uniform(num_points, dimension):
     return np.random.rand(num_points, dimension)
 
 
-def sample_halton(num_points, dimension, skip=0):
+def sample_halton(num_points, dimension, skip=20):
     """Generate a Halton point set.
 
-    Quasirandom sequence using the default initialization with the first
-    `dimension` prime numbers.
+    Low discrepency quasi-random sequence using the Van der Corput sequence with the
+    first `dimension` prime numbers as base.
 
     Parameters
     ----------
@@ -134,94 +134,33 @@ def sample_halton(num_points, dimension, skip=0):
     Returns
     -------
     points : (`num_points`, `dimension`) numpy array
-
     """
 
-    def is_prime(number):
-        number = float(number)
-        if number % 2 == 0 and number != 2:
-            return False
-        for divisor in range(3, int(number ** 0.5) + 1, 2):
-            if number % divisor == 0:
-                return False
-        return True
+    def van_der_corput(num_points, base, skip=0):
+        sequence = []
+        for i in range(skip + 1, skip + num_points + 1):
+            nth_number = 0
+            denom = 1.0
+            quotient = i
+            while quotient > 0:
+                quotient, remainder = divmod(quotient, base)
+                denom *= base
+                nth_number += remainder / denom
+            sequence.append(nth_number)
+        return sequence
 
-    def generator(index, base):
-        result = 0
-        f = 1.0 / base
-        i = index
-        while i > 0:
-            result += f * (i % base)
-            i = np.floor(i / base)
-            f /= base
-        return result
-
-    bases = [
-        2,
-        3,
-        5,
-        7,
-        11,
-        13,
-        17,
-        19,
-        23,
-        29,
-        31,
-        37,
-        41,
-        43,
-        47,
-        53,
-        59,
-        61,
-        67,
-        71,
-        73,
-        79,
-        83,
-        89,
-        97,
-        101,
-        103,
-        107,
-        109,
-        113,
-        127,
-        131,
-        137,
-        139,
-        149,
-        151,
-        157,
-        163,
-        167,
-        173,
-        179,
-        181,
-        191,
-        193,
-        197,
-        199,
-        211,
-        223,
-        227,
-        229,
-        233,
-        239,
-        241,
-        251,
-    ]
+    # select at least as many primes as there are dimensions
+    bases = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71]
+    bases += [73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151]
+    bases += [157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233]
     while len(bases) < dimension:
-        next_candidate = bases[-1] + 2
-        while not is_prime(next_candidate):
-            next_candidate += 2
-        bases.append(next_candidate)
-    points = []
-    for i in range(skip, skip + num_points):
-        point = [generator(i, bases[j]) for j in range(dimension)]
-        points.append(point)
-    return np.array(points)
+        b = bases[-1] + 2
+        while np.any(b % np.array(bases) == 0):  # while not prime
+            b += 2
+        bases.append(b)
+
+    points = [van_der_corput(num_points, bases[d], skip=skip) for d in range(dimension)]
+    return np.array(points).T
 
 
 def sample_k_means(
