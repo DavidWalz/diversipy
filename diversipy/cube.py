@@ -14,106 +14,30 @@ def unitcube(dimension):
     return [0.0] * dimension, [1.0] * dimension
 
 
-def scaled(points, from_cuboid, to_cuboid):
-    """Linear transformation between arbitrary cuboids.
-
-    This function does not check if the points are actually inside
-    `from_cuboid`.
-
-    Parameters
-    ----------
-    points : array_like
-        2-D array of points.
-    from_cuboid : tuple
-        Contains lower and upper boundaries.
-    to_cuboid : tuple
-        Contains lower and upper boundaries.
-
-    Returns
-    -------
-    scaled_points : numpy array
-        A new array containing the scaled points.
-
-    """
-    # sanity checks
-    min_bounds_to, max_bounds_to = to_cuboid
-    assert len(min_bounds_to) == len(max_bounds_to)
-    for min_bound_to, max_bound_to in zip(min_bounds_to, max_bounds_to):
-        assert max_bound_to >= min_bound_to
-    min_bounds_from, max_bounds_from = from_cuboid
-    assert len(min_bounds_from) == len(max_bounds_from)
-    for min_bound_from, max_bound_from in zip(min_bounds_from, max_bounds_from):
-        assert max_bound_from >= min_bound_from
-    # scale
-    length_factors = np.asarray(max_bounds_to) - min_bounds_to
-    length_factors /= np.asarray(max_bounds_from) - min_bounds_from
-    scaled_points = (np.asarray(points) - min_bounds_from) * length_factors
-    scaled_points += min_bounds_to
-    return scaled_points
-
-
-def grid(num_points, dimension):
-    """Create conventional grid in unit hypercube.
+def grid(n_levels, dimension, sukharev=False):
+    """Create conventional grid in the unit hypercube.
 
     Also related to full factorial designs.
 
     Parameters
     ----------
-    num_points : int
-        The number of points to generate.
-        ``num_points ** (1/dimension)`` must be integer.
+    n_levels : int
+        The number of levels in each dimension.
     dimension : int
         The dimension of the space.
+    sukharev : bool, optional
+        Switch for creating a Sukharev grid where the points are located at the
+        centroids of the subcells, e.g. [0.25, 0.75] instead of [0, 1].
 
     Returns
     -------
-    points : (`num_points`, `dimension`) numpy array
-
+    points : (`n_levels` ** `dimension`, `dimension`) numpy array
     """
-    points_per_axis = int(round(num_points ** (1.0 / dimension)))
-    assert points_per_axis ** dimension == num_points
-    possible_values = list(range(points_per_axis))
-    divisor = points_per_axis - 1.0
-    for i in range(points_per_axis):
-        possible_values[i] /= divisor
-    points = np.array(list(itertools.product(possible_values, repeat=dimension)))
-    return points
-
-
-def sukharev_grid(num_points, dimension):
-    """Create Sukharev grid in unit hypercube.
-
-    Special property of this grid is that points are not placed on the
-    boundaries of the hypercube, but at centroids of the `num_points`
-    subcells. This design offers optimal results for the covering radius
-    regarding distances based on the max-norm.
-
-    Parameters
-    ----------
-    num_points : int
-        The number of points to generate.
-        ``num_points ** (1/dimension)`` must be integer.
-    dimension : int
-        The dimension of the space.
-
-    Returns
-    -------
-    points : (`num_points`, `dimension`) numpy array
-
-    """
-    points_per_axis = int(round(num_points ** (1.0 / dimension)))
-    assert points_per_axis ** dimension == num_points
-    possible_values = [x + 0.5 for x in range(points_per_axis)]
-    divisor = points_per_axis
-    for i in range(points_per_axis):
-        possible_values[i] /= divisor
-    points = np.array(list(itertools.product(possible_values, repeat=dimension)))
-    return points
-
-
-def sample_uniform(num_points, dimension):
-    """Syntactic sugar for :func:`numpy.random.rand`."""
-    return np.random.rand(num_points, dimension)
+    if sukharev:
+        x = np.linspace(0, 1, n_levels, endpoint=False) + 0.5 / n_levels
+    else:
+        x = np.linspace(0, 1, n_levels)
+    return np.array(list(itertools.product(x, repeat=dimension)))
 
 
 def sample_halton(num_points, dimension, skip=20):
