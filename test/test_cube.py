@@ -66,35 +66,20 @@ def test_improved_latin_design():
     assert diversipy.cube.is_latin(X)
 
 
-def test_transform_anchored():
-    X = np.array([[0, 2], [1, 1], [2, 0]])
-    np.testing.assert_almost_equal(
-        diversipy.cube.transform_anchored(X), [[0, 2 / 3], [1 / 3, 1 / 3], [2 / 3, 0]]
-    )
+def test_design_to_unitcube():
+    D = diversipy.cube.latin_design(10, 5)
+    X = diversipy.cube.design_to_unitcube(D, transform="centered")
+    assert np.min(X) == 0.05
+    assert np.max(X) == 0.95
 
+    X = diversipy.cube.design_to_unitcube(D, transform="spread")
+    assert np.min(X) == 0
+    assert np.max(X) == 1
 
-def test_transform_perturbed():
-    X = diversipy.cube.latin_design(100, 5)
-    X = diversipy.cube.transform_perturbed(X)
-    assert (X >= 0).all() and (X <= 1).all()
+    X = diversipy.cube.design_to_unitcube(D, transform="perturbed")
+    assert (X >= 0).all()
+    assert (X <= 1).all()
 
-
-def test_transform_cell_centered():
-    X = np.array([[0, 2], [1, 1], [2, 0]])
-    np.testing.assert_almost_equal(
-        diversipy.cube.transform_cell_centered(X),
-        [[1 / 6, 5 / 6], [3 / 6, 3 / 6], [5 / 6, 1 / 6]],
-    )
-
-
-def test_transform_spread_out():
-    X = np.array([[0, 2], [1, 1], [2, 0]])
-    np.testing.assert_almost_equal(
-        diversipy.cube.transform_spread_out(X), [[0, 1], [0.5, 0.5], [1, 0]]
-    )
-
-
-def test_shifted_randomly():
-    X = np.random.rand(100, 5)
-    X = diversipy.cube.shifted_randomly(X)
-    assert (X >= 0).all() and (X <= 1).all()
+    X = diversipy.cube.design_to_unitcube(D, transform="shifted")
+    assert (X >= 0).all()
+    assert (X <= 1).all()

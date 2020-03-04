@@ -359,7 +359,6 @@ def stratify_conventional(num_strata, dimension):
     strata : list of tuple
         As the strata are axis-aligned boxes in this case, each tuple in
         the returned list contains the lower and upper corner of a stratum.
-
     """
     # shortcuts & initialization
     assert num_strata > 0
@@ -418,7 +417,6 @@ def stratify_generalized(
     .. [Wessing2018] Wessing, Simon (2018). Experimental Analysis of a
         Generalized Stratified Sampling Algorithm for Hypercubes. arXiv
         eprint 1705.03809. https://arxiv.org/abs/1705.03809
-
     """
     # sanity checks
     assert num_strata > 0
@@ -803,10 +801,9 @@ def rank1_design(num_points, dimension, g=None):
 def latin_design(num_points, dimension):
     """Generate a random latin hypercube design matrix.
 
-    Latin hypercube designs sometimes give an advantage over random uniform
-    samples due to their perfect uniformity of one-dimensional projections.
-    For further information see [McKay1979]_. This algorithm has linear run
-    time.
+    Latin hypercube designs sometimes give an advantage over random uniform samples due
+    to their perfect uniformity of one-dimensional projections.
+    For further information see [McKay1979]_. This algorithm has linear run time.
 
     Parameters
     ----------
@@ -827,12 +824,9 @@ def latin_design(num_points, dimension):
         A Comparison of Three Methods for Selecting Values of Input
         Variables in the Analysis of Output from a Computer Code.
         Technometrics 21(2): 239-245.
-
     """
-    design = np.zeros((num_points, dimension), dtype="i")
-    for i in range(dimension):
-        design[:, i] = np.random.permutation(np.arange(0, num_points))
-    return design
+    i = np.arange(num_points)
+    return np.column_stack([np.random.permutation(i) for _ in range(dimension)])
 
 
 def improved_latin_design(
@@ -878,7 +872,6 @@ def improved_latin_design(
     .. [Beachkofski2002] Beachkofski, B.; Grandhi, R. (2002). Improved
         Distributed Hypercube Sampling. American Institute of Aeronautics
         and Astronautics Paper 1274.
-
     """
     # shortcuts & initialization
     if dist_args.get("max_dist", None) is not None:
@@ -928,155 +921,46 @@ def improved_latin_design(
     return design
 
 
-def is_latin(design_matrix):
-    """Check if design matrix has the LHD property.
-
-    It is assumed that counting starts from zero and points are arranged
-    row-wise. So, each column must consist of a permutation of
-    ``range(num_points)``.
-
-    Parameters
-    ----------
-    design_matrix : array_like
-        2-D array of integer coordinates.
-
-    Returns
-    -------
-    is_lhd : bool
-
-    """
-    design_matrix = np.asarray(design_matrix)
-    num_points, dimension = design_matrix.shape
-    required_numbers = list(range(num_points))
-    for i in range(dimension):
-        ith_column = design_matrix[:, i].tolist()
-        if required_numbers != sorted(ith_column):
-            return False
-    return True
+def is_latin(design):
+    """Check if design matrix is latin, i.e. each column is a random permutation of
+    all integers between 0 and n-1."""
+    i = np.arange(len(design))
+    return np.all(np.sort(design, axis=0).T == i)
 
 
-def transform_perturbed(design_matrix):
-    """Transform a design matrix into a sample in the unit hypercube.
-
-    Applies random perturbations so that each point is distributed randomly
-    uniform in its grid cell. This is the variant proposed by [McKay1979]_.
-    It is not checked if `design_matrix` is a LHD.
+def design_to_unitcube(design, transform="perturbed"):
+    """Transform a design matrix into samples in the unit hypercube.
 
     Parameters
     ----------
-    design_matrix : array_like
-        Array containing integers to indicate the bins occupied by each
-        point.
+    design : 2d-array (n_points, dimension)
+        A design matrix
+    transform : str
+        "centered": Each point is placed at the centroid of its cell.
+        "spread": Maximize the minimal distance between points.
+        "perturbed": Apply individual perturbations so that each point is uniformly
+        distributed in its cell. This variant was proposed in [McKay1979]_.
+        "shifted": Apply a joint perturbation so that each point is uniformly
+        distributed in its cell. This variant was proposed in [Cranley1976]_.
 
     Returns
     -------
-    points : (`num_points`, `dimension`) numpy array
-
-    """
-    points = np.array(design_matrix, dtype="d")
-    num_points, num_dimensions = points.shape
-    points += np.random.rand(num_points, num_dimensions)
-    points /= num_points
-    return points
-
-
-def transform_cell_centered(design_matrix):
-    """Transform a design matrix into a sample in the unit hypercube.
-
-    Each point is placed at the centroid of a subcell in the assumed grid
-    over the cube. It is not checked if `design_matrix` is a LHD.
-
-    Parameters
-    ----------
-    design_matrix : array_like
-        Array containing integers to indicate the bins occupied by each
-        point.
-
-    Returns
-    -------
-    points : (`num_points`, `dimension`) numpy array
-
-    """
-    design_matrix = np.asarray(design_matrix)
-    num_points = len(design_matrix)
-    points = design_matrix + 0.5
-    points /= num_points
-    return points
-
-
-def transform_spread_out(design_matrix):
-    """Transform a design matrix into a sample in the unit hypercube.
-
-    The transformation is so that each face of the hypercube is sampled by
-    at least one point (exactly one point in the case of LHDs). Use this
-    transformation if you want to maximize the minimal distance between
-    points in the design. It is not checked if `design_matrix` is a LHD.
-
-    Parameters
-    ----------
-    design_matrix : array_like
-        Array containing integers to indicate the bins occupied by each
-        point.
-
-    Returns
-    -------
-    points : (`num_points`, `dimension`) numpy array
-
-    """
-    points = np.array(design_matrix, dtype="d")
-    num_points = len(points)
-    points /= num_points - 1.0
-    return points
-
-
-def transform_anchored(design_matrix):
-    """Transform a design matrix into a sample in the unit hypercube.
-
-    This is typically used with rank-1 lattices. The zero-vector is a fix
-    point in this transformation. It is not checked if `design_matrix`
-    is a LHD. The highest value sampled is ``(num_points - 1) / num_points``.
-    You may want to apply :func:`shifted_randomly` afterwards to get
-    perturbation.
-
-    Parameters
-    ----------
-    design_matrix : array_like
-        Array containing integers to indicate the bins occupied by each
-        point.
-
-    Returns
-    -------
-    points : (`num_points`, `dimension`) numpy array
-
-    """
-    points = np.array(design_matrix, dtype="d")
-    num_points = len(points)
-    points /= num_points
-    return points
-
-
-def shifted_randomly(points):
-    """Cranley-Patterson rotation.
-
-    Parameters
-    ----------
-    points : array_like
-        2-D array of points.
-
-    Returns
-    -------
-    shifted_points : numpy array
-        A new array containing the shifted points.
+    2d-array (n_points, dimension)
+        Samples in the unit hypercube.
 
     References
     ----------
     .. [Cranley1976] R. Cranley; T. N. L. Patterson (1976). Randomization
         of Number Theoretic Methods for Multiple Integration. SIAM Journal
         on Numerical Analysis, vol. 13, no. 6, pp. 904-914.
-
     """
-    _, dim = points.shape
-    shift_vector = np.random.rand(dim)
-    shifted_points = points + shift_vector
-    shifted_points %= 1
-    return shifted_points
+    if transform == "centered":
+        return (design + 0.5) / len(design)
+    if transform == "spread":
+        return design / (len(design) - 1)
+    if transform == "perturbed":
+        return (design + np.random.rand(*design.shape)) / len(design)
+    if transform == "shifted":
+        return (design / len(design) + np.random.rand(design.shape[1])) % 1
+    else:
+        raise ValueError("transform must be one of {centered|spread|perturbed|shifted}")

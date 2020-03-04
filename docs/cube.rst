@@ -25,8 +25,6 @@ Designs
 .. autofunction:: improved_latin_design
 .. autofunction:: is_latin
 .. autofunction:: rank1_design
-.. autofunction:: korobov_design
-
 
 Other
 ~~~~~
@@ -37,14 +35,9 @@ Other
 .. autofunction:: grid
 
 
-
 Helper functions
 ----------------
 
 .. autofunction:: unitcube
-.. autofunction:: scaled
-.. autofunction:: transform_perturbed
-.. autofunction:: transform_cell_centered
-.. autofunction:: transform_spread_out
-.. autofunction:: transform_anchored
-.. autofunction:: shifted_randomly
+.. autofunction:: design_to_unitcube
+.. autofunction:: is_latin
