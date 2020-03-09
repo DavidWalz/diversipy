@@ -11,6 +11,7 @@ from . import polytope
 from . import subset
 from . import indicator
 from . import distance
+from . import sobol
 
-__all__ = ["cube", "simplex", "polytope", "subset", "indicator", "distance"]
+__all__ = ["cube", "simplex", "polytope", "subset", "indicator", "distance", "sobol"]
 __version__ = "0.9"
